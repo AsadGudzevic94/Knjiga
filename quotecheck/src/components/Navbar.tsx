@@ -18,16 +18,16 @@ export default function Navbar() {
             </span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-8">
-            <a href="#how-it-works" className="text-sm text-muted hover:text-foreground transition">
-              How It Works
-            </a>
-            <a href="#features" className="text-sm text-muted hover:text-foreground transition">
-              Features
-            </a>
-            <a href="#pricing" className="text-sm text-muted hover:text-foreground transition">
+          <div className="hidden md:flex items-center gap-6">
+            <Link href="/compare" className="text-sm text-muted hover:text-foreground transition">
+              Compare
+            </Link>
+            <Link href="/dashboard" className="text-sm text-muted hover:text-foreground transition">
+              Dashboard
+            </Link>
+            <Link href="/pricing" className="text-sm text-muted hover:text-foreground transition">
               Pricing
-            </a>
+            </Link>
             <Link
               href="/analyze"
               className="bg-primary text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition"
@@ -49,15 +49,15 @@ export default function Navbar() {
       {mobileOpen && (
         <div className="md:hidden bg-white border-b border-gray-100 px-4 pb-4">
           <div className="flex flex-col gap-3">
-            <a href="#how-it-works" className="text-sm text-muted py-2" onClick={() => setMobileOpen(false)}>
-              How It Works
-            </a>
-            <a href="#features" className="text-sm text-muted py-2" onClick={() => setMobileOpen(false)}>
-              Features
-            </a>
-            <a href="#pricing" className="text-sm text-muted py-2" onClick={() => setMobileOpen(false)}>
+            <Link href="/compare" className="text-sm text-muted py-2" onClick={() => setMobileOpen(false)}>
+              Compare Quotes
+            </Link>
+            <Link href="/dashboard" className="text-sm text-muted py-2" onClick={() => setMobileOpen(false)}>
+              Dashboard
+            </Link>
+            <Link href="/pricing" className="text-sm text-muted py-2" onClick={() => setMobileOpen(false)}>
               Pricing
-            </a>
+            </Link>
             <Link
               href="/analyze"
               className="bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-medium text-center hover:bg-primary-dark transition"

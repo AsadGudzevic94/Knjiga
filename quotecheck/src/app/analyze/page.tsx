@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import ReceiptScanner from "@/components/ReceiptScanner";
 import type { QuoteAnalysis } from "@/lib/types";
 import {
   ShieldCheck,
@@ -16,6 +17,8 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Camera,
+  Type,
 } from "lucide-react";
 
 const CATEGORIES = [
@@ -160,6 +163,8 @@ function QuoteForm({
   onSubmit: (e: React.FormEvent) => void;
   onLoadExample: () => void;
 }) {
+  const [inputMode, setInputMode] = useState<"type" | "scan">("type");
+
   return (
     <div className="animate-fade-in">
       <div className="text-center mb-8">
@@ -167,8 +172,7 @@ function QuoteForm({
           Analyze Your Quote
         </h1>
         <p className="text-muted max-w-lg mx-auto">
-          Paste your service quote below and we&apos;ll tell you if the price is
-          fair for your area.
+          Paste your quote, type it in, or scan a photo of your receipt.
         </p>
       </div>
 
@@ -176,10 +180,47 @@ function QuoteForm({
         onSubmit={onSubmit}
         className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8"
       >
-        <div className="mb-5">
+        {/* Input mode tabs */}
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-1 mb-5">
+          <button
+            type="button"
+            onClick={() => setInputMode("type")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition ${
+              inputMode === "type"
+                ? "bg-white text-foreground shadow-sm"
+                : "text-muted hover:text-foreground"
+            }`}
+          >
+            <Type className="w-4 h-4" />
+            Type / Paste
+          </button>
+          <button
+            type="button"
+            onClick={() => setInputMode("scan")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition ${
+              inputMode === "scan"
+                ? "bg-white text-foreground shadow-sm"
+                : "text-muted hover:text-foreground"
+            }`}
+          >
+            <Camera className="w-4 h-4" />
+            Scan Receipt
+          </button>
+        </div>
+
+        {inputMode === "scan" && (
+          <div className="mb-5">
+            <ReceiptScanner onTextExtracted={(text) => {
+              setQuoteText(text);
+              setInputMode("type");
+            }} />
+          </div>
+        )}
+
+        <div className={`mb-5 ${inputMode === "scan" && !quoteText ? "hidden" : ""}`}>
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-medium text-foreground">
-              Your Quote / Estimate
+              {inputMode === "scan" && quoteText ? "Extracted Text (edit if needed)" : "Your Quote / Estimate"}
             </label>
             <button
               type="button"
