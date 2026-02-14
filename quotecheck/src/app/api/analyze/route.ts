@@ -1,27 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { QuoteAnalysis, AnalyzeRequest } from "@/lib/types";
+import type { QuoteAnalysis, AnalyzeRequest, LineItemAnalysis } from "@/lib/types";
+import { getRegionalFactor, matchService } from "@/lib/pricing-data";
 
 function parseQuoteItems(text: string): { item: string; price: number }[] {
   const items: { item: string; price: number }[] = [];
   const lines = text.split("\n");
 
   for (const line of lines) {
-    const priceMatch = line.match(/\$\s*([\d,]+(?:\.\d{2})?)/);
+    const lowerLine = line.toLowerCase().trim();
+    if (
+      lowerLine.startsWith("total") ||
+      lowerLine.startsWith("subtotal") ||
+      lowerLine.startsWith("sub total") ||
+      lowerLine.startsWith("tax") ||
+      lowerLine.startsWith("grand total") ||
+      lowerLine === ""
+    ) {
+      continue;
+    }
+
+    const priceMatch = line.match(/\$\s*([\d,]+(?:\.\d{1,2})?)/);
     if (priceMatch) {
       const price = parseFloat(priceMatch[1].replace(",", ""));
-      const item = line.replace(/\$\s*[\d,]+(?:\.\d{2})?/, "").trim();
+      const item = line
+        .replace(/\$\s*[\d,]+(?:\.\d{1,2})?/, "")
+        .replace(/[-–—:.\s]+$/, "")
+        .replace(/^[-–—:.\s]+/, "")
+        .trim();
       if (item && price > 0) {
-        items.push({ item: item.replace(/[-:.]$/, "").trim(), price });
+        items.push({ item, price });
       }
     }
   }
 
   if (items.length === 0) {
-    const totalMatch = text.match(/\$\s*([\d,]+(?:\.\d{2})?)/);
-    if (totalMatch) {
+    const allPrices = [...text.matchAll(/\$\s*([\d,]+(?:\.\d{1,2})?)/g)];
+    if (allPrices.length > 0) {
+      const lastPrice = allPrices[allPrices.length - 1];
       items.push({
         item: "Total Service Quote",
-        price: parseFloat(totalMatch[1].replace(",", "")),
+        price: parseFloat(lastPrice[1].replace(",", "")),
       });
     }
   }
@@ -29,70 +47,56 @@ function parseQuoteItems(text: string): { item: string; price: number }[] {
   return items;
 }
 
-function getCategoryMultiplier(category: string): number {
-  const multipliers: Record<string, number> = {
-    auto_repair: 0.85,
-    plumbing: 0.80,
-    electrical: 0.82,
-    hvac: 0.78,
-    dental: 0.75,
-    medical: 0.70,
-    legal: 0.88,
-    home_renovation: 0.82,
-    roofing: 0.80,
-    wedding: 0.65,
-    moving: 0.78,
-    other: 0.80,
-  };
-  return multipliers[category] || 0.80;
-}
-
-function getZipCodeFactor(zip: string): number {
-  const firstDigit = parseInt(zip.charAt(0));
-  const factors: Record<number, number> = {
-    0: 1.15, // Northeast
-    1: 1.12,
-    2: 1.08,
-    3: 0.92, // Southeast
-    4: 0.95,
-    5: 0.90, // Midwest
-    6: 0.93,
-    7: 0.88, // South
-    8: 1.05, // Mountain West
-    9: 1.18, // West Coast
-  };
-  return factors[firstDigit] ?? 1.0;
-}
-
 function analyzeQuote(req: AnalyzeRequest): QuoteAnalysis {
   const items = parseQuoteItems(req.quoteText);
-  const categoryMultiplier = getCategoryMultiplier(req.serviceCategory);
-  const zipFactor = getZipCodeFactor(req.zipCode);
-  const baseVariance = 0.15;
+  const region = getRegionalFactor(req.zipCode);
+  const regionFactor = region.factor;
 
-  const lineItems = items.map((item) => {
-    const fairMid = item.price * categoryMultiplier * zipFactor;
-    const fairLow = Math.round(fairMid * (1 - baseVariance));
-    const fairHigh = Math.round(fairMid * (1 + baseVariance));
-    const percentOver = Math.round(
-      ((item.price - fairMid) / fairMid) * 100
-    );
+  const lineItems: LineItemAnalysis[] = items.map((item) => {
+    const matched = matchService(item.item, req.serviceCategory);
+
+    let fairLow: number;
+    let fairHigh: number;
+    let fairMid: number;
+
+    if (matched) {
+      fairLow = Math.round(matched.lowPrice * regionFactor);
+      fairHigh = Math.round(matched.highPrice * regionFactor);
+      fairMid = Math.round(matched.avgPrice * regionFactor);
+    } else {
+      const baseFactor = 0.78;
+      fairMid = Math.round(item.price * baseFactor * regionFactor);
+      fairLow = Math.round(fairMid * 0.82);
+      fairHigh = Math.round(fairMid * 1.18);
+    }
+
+    const hoursMatch = item.item.match(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)/i);
+    if (hoursMatch && matched && matched.unit === "per hour") {
+      const hours = parseFloat(hoursMatch[1]);
+      fairLow = Math.round(fairLow * hours);
+      fairHigh = Math.round(fairHigh * hours);
+      fairMid = Math.round(fairMid * hours);
+    }
+
+    const percentOver = fairMid > 0 ? Math.round(((item.price - fairMid) / fairMid) * 100) : 0;
 
     let status: "fair" | "slightly_high" | "overpriced";
     if (item.price <= fairHigh * 1.05) {
       status = "fair";
-    } else if (item.price <= fairHigh * 1.25) {
+    } else if (item.price <= fairHigh * 1.3) {
       status = "slightly_high";
     } else {
       status = "overpriced";
     }
 
+    const matchedName = matched ? matched.item : null;
+
     const notes =
       status === "fair"
-        ? "This line item is within the typical price range for your area."
+        ? `${matchedName ? `Matched: ${matchedName}.` : ""} This is within the typical range for ${region.label}.`
         : status === "slightly_high"
-        ? `This is about ${percentOver}% above the average. You may be able to negotiate this down.`
-        : `This is ${percentOver}% above average. This item is significantly overpriced and should be negotiated or you should get a second quote.`;
+        ? `${matchedName ? `Matched: ${matchedName}.` : ""} About ${Math.max(0, percentOver)}% above average for ${region.label}. You may be able to negotiate this down.`
+        : `${matchedName ? `Matched: ${matchedName}.` : ""} This is ${Math.max(0, percentOver)}% above average for ${region.label}. Significantly overpriced — get a second quote or negotiate hard.`;
 
     return {
       item: item.item,
@@ -111,24 +115,33 @@ function analyzeQuote(req: AnalyzeRequest): QuoteAnalysis {
   const fairMidTotal = (fairTotalLow + fairTotalHigh) / 2;
   const potentialSavings = Math.max(0, Math.round(totalQuoted - fairMidTotal));
 
-  const overallRatio = totalQuoted / fairMidTotal;
+  const overallRatio = fairMidTotal > 0 ? totalQuoted / fairMidTotal : 1;
   let overallScore: number;
   let overallVerdict: QuoteAnalysis["overallVerdict"];
 
-  if (overallRatio <= 0.95) {
+  if (overallRatio <= 0.9) {
     overallScore = 10;
     overallVerdict = "great_deal";
-  } else if (overallRatio <= 1.05) {
+  } else if (overallRatio <= 1.0) {
+    overallScore = 9;
+    overallVerdict = "great_deal";
+  } else if (overallRatio <= 1.08) {
     overallScore = 8;
     overallVerdict = "fair";
   } else if (overallRatio <= 1.15) {
-    overallScore = 6;
+    overallScore = 7;
     overallVerdict = "fair";
-  } else if (overallRatio <= 1.3) {
+  } else if (overallRatio <= 1.25) {
+    overallScore = 5;
+    overallVerdict = "slightly_high";
+  } else if (overallRatio <= 1.4) {
     overallScore = 4;
     overallVerdict = "slightly_high";
-  } else if (overallRatio <= 1.5) {
+  } else if (overallRatio <= 1.6) {
     overallScore = 3;
+    overallVerdict = "overpriced";
+  } else if (overallRatio <= 2.0) {
+    overallScore = 2;
     overallVerdict = "overpriced";
   } else {
     overallScore = 1;
@@ -137,59 +150,65 @@ function analyzeQuote(req: AnalyzeRequest): QuoteAnalysis {
 
   const redFlags: string[] = [];
   const overpricedItems = lineItems.filter((i) => i.status === "overpriced");
+  const slightlyHighItems = lineItems.filter((i) => i.status === "slightly_high");
+
   if (overpricedItems.length > 0) {
     redFlags.push(
-      `${overpricedItems.length} line item(s) are significantly above market rate.`
+      `${overpricedItems.length} line item(s) are significantly above market rate for ${region.label}.`
     );
+  }
+  if (overpricedItems.length + slightlyHighItems.length === lineItems.length && lineItems.length > 1) {
+    redFlags.push("Every single line item is above average — this vendor may be systematically overcharging.");
   }
   if (totalQuoted > fairTotalHigh * 1.3) {
-    redFlags.push("The total quote is 30%+ above the typical range for your area.");
+    redFlags.push(
+      `Total quote is 30%+ above the typical range. You could save ~$${potentialSavings.toLocaleString()}.`
+    );
   }
   if (lineItems.length === 1 && totalQuoted > 500) {
-    redFlags.push(
-      "The quote lacks itemization. Ask for a detailed breakdown of parts and labor."
-    );
+    redFlags.push("Quote lacks itemization. Always ask for a breakdown of parts, labor, and fees.");
   }
   if (
     req.quoteText.toLowerCase().includes("emergency") ||
-    req.quoteText.toLowerCase().includes("urgent")
+    req.quoteText.toLowerCase().includes("urgent") ||
+    req.quoteText.toLowerCase().includes("after hours")
   ) {
-    redFlags.push("Emergency/urgent pricing detected. If this isn't truly urgent, request standard rates.");
+    redFlags.push("Emergency/after-hours pricing detected. If this isn't truly urgent, request standard rates.");
   }
 
-  const negotiationTips: string[] = [
-    `Ask for a line-by-line breakdown if you don't have one already.`,
-    `Get at least 2-3 competing quotes to use as leverage.`,
-    `Ask if there are any discounts for paying in cash or upfront.`,
-  ];
+  const negotiationTips: string[] = [];
+  negotiationTips.push("Always ask for a detailed written estimate with itemized parts and labor.");
+  negotiationTips.push(`Get 2-3 competing quotes from other providers in ${region.label}.`);
+
   if (overpricedItems.length > 0) {
     negotiationTips.push(
-      `Focus negotiation on: ${overpricedItems.map((i) => i.item).join(", ")} - these are the most overpriced items.`
+      `Focus your negotiation on: ${overpricedItems.map((i) => i.item).join(", ")}. These have the most room to move.`
     );
   }
-  if (potentialSavings > 500) {
+  if (potentialSavings > 200) {
     negotiationTips.push(
-      `You could save approximately $${potentialSavings.toLocaleString()} by negotiating to fair market rates.`
+      `Potential savings: $${potentialSavings.toLocaleString()}. Mention you've researched fair market rates.`
     );
   }
+  negotiationTips.push("Ask about discounts for paying upfront, in cash, or bundling services.");
 
   const categoryName =
-    req.serviceCategory.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) ||
-    "Service";
+    req.serviceCategory.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-  const negotiationScript = generateNegotiationScript(
+  const negotiationScript = generateScript(
     categoryName,
+    region.label,
     totalQuoted,
-    fairMidTotal,
-    overpricedItems.map((i) => i.item)
+    Math.round(fairMidTotal),
+    overpricedItems
   );
 
   const verdictText: Record<string, string> = {
-    great_deal: "This quote is a great deal! The price is below market average.",
-    fair: "This quote is within a fair range for your area.",
-    slightly_high: "This quote is above average. There's room to negotiate.",
-    overpriced: "This quote is significantly overpriced. We recommend negotiating or getting additional quotes.",
-    ripoff: "This quote is extremely overpriced. We strongly recommend getting competing quotes before proceeding.",
+    great_deal: `Great deal for ${region.label}! The price is at or below market average.`,
+    fair: `This quote is within a fair range for ${region.label}. Minor room for negotiation.`,
+    slightly_high: `This quote is above average for ${region.label}. There's meaningful room to negotiate.`,
+    overpriced: `This quote is significantly overpriced for ${region.label}. We strongly recommend negotiating or getting competing quotes.`,
+    ripoff: `This quote is extremely overpriced for ${region.label}. Do not accept this price — get competing quotes immediately.`,
   };
 
   return {
@@ -208,24 +227,31 @@ function analyzeQuote(req: AnalyzeRequest): QuoteAnalysis {
   };
 }
 
-function generateNegotiationScript(
+function generateScript(
   category: string,
+  regionLabel: string,
   quoted: number,
   fairMid: number,
-  overpricedItems: string[]
+  overpricedItems: LineItemAnalysis[]
 ): string {
-  const target = Math.round(fairMid);
-  const itemsList = overpricedItems.length > 0
-    ? `\n\nSpecifically, I'd like to discuss the pricing on: ${overpricedItems.join(", ")}. Based on my research, these items appear to be above the going rate in this area.`
-    : "";
+  const target = fairMid;
+  const itemsList =
+    overpricedItems.length > 0
+      ? `\n\nSpecifically, I'd like to discuss:\n${overpricedItems
+          .map(
+            (i) =>
+              `- ${i.item}: You quoted $${i.quotedPrice.toLocaleString()}, but the typical rate in ${regionLabel} is $${i.fairPriceLow.toLocaleString()}-$${i.fairPriceHigh.toLocaleString()}.`
+          )
+          .join("\n")}`
+      : "";
 
-  return `"Hi, thank you for the ${category.toLowerCase()} quote. I appreciate your time putting this together.
+  return `"Hi, thank you for the ${category.toLowerCase()} estimate. I appreciate you putting this together.
 
-I've done some research on typical pricing in our area, and the fair market range for this work appears to be around $${target.toLocaleString()}. Your quote of $${Math.round(quoted).toLocaleString()} is a bit above that range.${itemsList}
+I've done some research on typical pricing in the ${regionLabel} area, and the fair market range for this work is around $${target.toLocaleString()}. Your quote of $${Math.round(quoted).toLocaleString()} is above that range.${itemsList}
 
-I'd really like to work with you on this. Is there any flexibility on the pricing? I'm ready to move forward today if we can get closer to the market rate.
+I'd really like to work with you on this project. Is there any flexibility on the pricing? I'm happy to move forward today if we can get closer to the market rate.
 
-If needed, I'm happy to get a couple more quotes, but I'd prefer to work with you if we can find a number that works for both of us."`;
+If it helps, I have a couple of other quotes I'm comparing, but I'd prefer to go with you if we can find a fair number for both of us."`;
 }
 
 export async function POST(request: NextRequest) {
@@ -246,8 +272,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Simulate brief processing time
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
     const analysis = analyzeQuote(body);
     return NextResponse.json(analysis);
