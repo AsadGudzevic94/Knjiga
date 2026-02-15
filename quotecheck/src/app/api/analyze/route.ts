@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { QuoteAnalysis, AnalyzeRequest, LineItemAnalysis } from "@/lib/types";
 import { getRegionalFactor, matchService } from "@/lib/pricing-data";
 import { getAIAnalysis, mergeAIAnalysis } from "@/lib/ai-analysis";
+import { findCachedAnalysis, storeAnalysis } from "@/lib/db";
 
 function parseQuoteItems(text: string): { item: string; price: number }[] {
   const items: { item: string; price: number }[] = [];
@@ -273,8 +274,60 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const region = getRegionalFactor(body.zipCode);
+
+    // Step 0: Check the cache for a similar previous analysis
+    const cached = findCachedAnalysis(
+      body.quoteText,
+      body.serviceCategory,
+      body.zipCode
+    );
+
+    if (cached && cached.matchType === "exact") {
+      console.log(`[QuoteCheck] Cache HIT (exact, ${cached.ageHours}h old)`);
+      return NextResponse.json({
+        ...cached.result,
+        _cache: { hit: true, type: "exact", ageHours: cached.ageHours },
+      });
+    }
+
     // Step 1: Run rule-based analysis (instant)
     const ruleBasedAnalysis = analyzeQuote(body);
+
+    // Step 1.5: If we have a strong similar match, return it with fresh rule-based data
+    if (cached && cached.matchType === "similar" && cached.similarity >= 0.7) {
+      console.log(
+        `[QuoteCheck] Cache HIT (similar ${Math.round(cached.similarity * 100)}%, ${cached.ageHours}h old)`
+      );
+      // Use the AI analysis from the cache but combine with fresh rule-based numbers
+      const merged = cached.result.aiAnalysis
+        ? {
+            ...ruleBasedAnalysis,
+            aiAnalysis: cached.result.aiAnalysis,
+            lineItems: ruleBasedAnalysis.lineItems.map((li) => {
+              const cachedItem = cached.result.lineItems.find(
+                (cli) =>
+                  cli.item.toLowerCase().includes(li.item.toLowerCase().split(" ")[0]) ||
+                  li.item.toLowerCase().includes(cli.item.toLowerCase().split(" ")[0])
+              );
+              return {
+                ...li,
+                aiExplanation: cachedItem?.aiExplanation || undefined,
+              };
+            }),
+          }
+        : ruleBasedAnalysis;
+
+      return NextResponse.json({
+        ...merged,
+        _cache: {
+          hit: true,
+          type: "similar",
+          similarity: cached.similarity,
+          ageHours: cached.ageHours,
+        },
+      });
+    }
 
     // Step 2: Enhance with Claude AI analysis (if API key available)
     const aiResult = await getAIAnalysis(
@@ -289,7 +342,24 @@ export async function POST(request: NextRequest) {
       ? mergeAIAnalysis(ruleBasedAnalysis, aiResult)
       : ruleBasedAnalysis;
 
-    return NextResponse.json(finalAnalysis);
+    // Step 4: Store in database for future cache hits and community data
+    try {
+      const id = storeAnalysis(
+        body.quoteText,
+        body.serviceCategory,
+        body.zipCode,
+        region.label,
+        finalAnalysis
+      );
+      console.log(`[QuoteCheck] Stored analysis #${id}`);
+    } catch (storeErr) {
+      console.error("[QuoteCheck] Failed to store analysis:", storeErr);
+    }
+
+    return NextResponse.json({
+      ...finalAnalysis,
+      _cache: { hit: false },
+    });
   } catch {
     return NextResponse.json(
       { error: "Failed to analyze quote. Please try again." },
