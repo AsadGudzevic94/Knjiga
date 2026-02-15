@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ReceiptScanner from "@/components/ReceiptScanner";
 import type { QuoteAnalysis } from "@/lib/types";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 import {
   ShieldCheck,
   Loader2,
@@ -72,6 +75,8 @@ Tax: $101.20
 Total: $1,366.20`;
 
 export default function AnalyzePage() {
+  const router = useRouter();
+  const { user } = useAuth();
   const [quoteText, setQuoteText] = useState("");
   const [category, setCategory] = useState("auto_repair");
   const [zipCode, setZipCode] = useState("");
@@ -79,6 +84,8 @@ export default function AnalyzePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<AnalysisResponse | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -116,6 +123,48 @@ export default function AnalyzePage() {
     setQuoteText(EXAMPLE_QUOTE);
     setCategory("auto_repair");
     setZipCode("78701");
+  }
+
+  async function saveQuote() {
+    if (!result || !user) return;
+
+    setSaving(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) {
+        router.push('/login');
+        return;
+      }
+
+      const response = await fetch('/api/quotes/save', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          category: CATEGORIES.find(c => c.value === category)?.label || category,
+          vendor: businessName || 'Unknown Vendor',
+          totalQuoted: result.totalQuoted,
+          fairMid: result.fairMid,
+          savings: result.savings,
+          score: result.score,
+          verdict: result.verdict,
+          items: result.items,
+        }),
+      });
+
+      if (response.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      } else {
+        console.error('Failed to save quote');
+      }
+    } catch (error) {
+      console.error('Error saving quote:', error);
+    } finally {
+      setSaving(false);
+    }
   }
 
   function resetForm() {
@@ -156,7 +205,13 @@ export default function AnalyzePage() {
               onLoadExample={loadExample}
             />
           ) : (
-            <ResultsView result={result} onReset={resetForm} />
+            <ResultsView
+              result={result}
+              onReset={resetForm}
+              onSave={saveQuote}
+              saving={saving}
+              saved={saved}
+            />
           )}
         </div>
       </main>
@@ -358,9 +413,15 @@ function QuoteForm({
 function ResultsView({
   result,
   onReset,
+  onSave,
+  saving,
+  saved,
 }: {
   result: AnalysisResponse;
   onReset: () => void;
+  onSave?: () => void;
+  saving?: boolean;
+  saved?: boolean;
 }) {
   const [scriptCopied, setScriptCopied] = useState(false);
   const [showScript, setShowScript] = useState(false);
@@ -402,13 +463,44 @@ function ResultsView({
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
           Quote Analysis Results
         </h1>
-        <button
-          onClick={onReset}
-          className="text-sm text-primary hover:underline"
-        >
-          Analyze another quote
-        </button>
+        <div className="flex items-center gap-3">
+          {onSave && (
+            <button
+              onClick={onSave}
+              disabled={saving || saved}
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                saved
+                  ? "bg-green-500 text-white"
+                  : "bg-primary text-white hover:bg-primary/90"
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {saved ? "✓ Saved" : saving ? "Saving..." : "Save Quote"}
+            </button>
+          )}
+          <button
+            onClick={onReset}
+            className="text-sm text-primary hover:underline"
+          >
+            Analyze another quote
+          </button>
+        </div>
       </div>
+
+      {/* Success message */}
+      {saved && (
+        <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-xl">
+          <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+            <span className="text-white text-xs">✓</span>
+          </div>
+          <span className="text-green-700 font-medium">
+            Quote saved successfully! View it in your{" "}
+            <a href="/dashboard" className="underline hover:text-green-800">
+              dashboard
+            </a>
+            .
+          </span>
+        </div>
+      )}
 
       {/* Cache indicator */}
       {result._cache?.hit && (
