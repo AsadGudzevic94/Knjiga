@@ -2,29 +2,48 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ShieldCheck, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ShieldCheck, Loader2, CheckCircle } from "lucide-react";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    // In production: call /api/auth/signup with Supabase
-    await new Promise((r) => setTimeout(r, 1000));
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name }),
+      });
 
-    if (email && password && name) {
-      alert("Signup would create account via Supabase here.");
-    } else {
-      setError("Please fill in all fields.");
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Signup failed');
+        setLoading(false);
+        return;
+      }
+
+      // Success - show message and redirect after delay
+      setSuccess(true);
+      setLoading(false);
+      setTimeout(() => {
+        router.push('/login');
+      }, 2000);
+    } catch (err) {
+      setError('An error occurred. Please try again.');
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   return (
@@ -39,7 +58,7 @@ export default function SignupPage() {
           </Link>
           <h1 className="text-xl font-bold text-foreground">Create your account</h1>
           <p className="text-sm text-muted mt-1">
-            Start checking quotes for free
+            Join QuoteCheck today
           </p>
         </div>
 
@@ -89,6 +108,13 @@ export default function SignupPage() {
 
           {error && (
             <p className="text-sm text-red-500">{error}</p>
+          )}
+
+          {success && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-green-600" />
+              <p className="text-sm text-green-700">Account created! Redirecting to login...</p>
+            </div>
           )}
 
           <button

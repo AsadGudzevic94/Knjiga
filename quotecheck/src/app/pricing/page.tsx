@@ -8,24 +8,9 @@ import { CheckCircle, ArrowRight, Zap, X } from "lucide-react";
 
 const PLANS = [
   {
-    id: "free",
-    name: "Free",
-    price: 0,
-    period: "/mo",
-    description: "For occasional quote checks",
-    features: [
-      "3 quote checks per month",
-      "Fairness score & price range",
-      "Basic line-item analysis",
-      "General negotiation tips",
-    ],
-    cta: "Get Started Free",
-    popular: false,
-  },
-  {
     id: "pro_monthly",
-    name: "Pro",
-    price: 9.99,
+    name: "Pro Monthly",
+    price: 20,
     period: "/mo",
     description: "For anyone who hates overpaying",
     features: [
@@ -36,26 +21,28 @@ const PLANS = [
       "Priority analysis speed",
       "Email & PDF reports",
       "Price trend data",
+      "24/7 support",
     ],
-    cta: "Start Free Trial",
-    popular: true,
+    cta: "Get Started",
+    popular: false,
   },
   {
     id: "pro_annual",
     name: "Pro Annual",
-    price: 7.99,
+    price: 10,
     period: "/mo",
-    description: "Best value - save 20%",
-    annualPrice: 95.88,
+    description: "Best value - save 50%",
+    annualPrice: 120,
     features: [
-      "Everything in Pro",
-      "Save 20% vs monthly",
-      "Billed annually at $95.88",
+      "Everything in Pro Monthly",
+      "Save 50% vs monthly",
+      "Billed annually at $120",
       "Priority support",
       "Early access to new features",
+      "Exclusive price database access",
     ],
-    cta: "Start Free Trial",
-    popular: false,
+    cta: "Get Started",
+    popular: true,
   },
 ];
 
@@ -94,7 +81,7 @@ export default function PricingPage() {
           <div className="text-center mb-14">
             <div className="inline-flex items-center gap-2 bg-blue-100 text-primary px-4 py-1.5 rounded-full text-sm font-medium mb-4">
               <Zap className="w-4 h-4" />
-              14-day free trial on all Pro plans
+              No free trials. No games. Just honest pricing.
             </div>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4">
               Simple, Honest Pricing
@@ -106,7 +93,7 @@ export default function PricingPage() {
           </div>
 
           {/* Plans */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-20">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-20">
             {PLANS.map((plan) => (
               <div
                 key={plan.id}
@@ -146,13 +133,7 @@ export default function PricingPage() {
                 </ul>
 
                 <button
-                  onClick={() => {
-                    if (plan.id === "free") {
-                      window.location.href = "/analyze";
-                    } else {
-                      setBillingModal(plan.id);
-                    }
-                  }}
+                  onClick={() => setBillingModal(plan.id)}
                   className={`w-full py-3 rounded-xl font-semibold transition flex items-center justify-center gap-2 ${
                     plan.popular
                       ? "bg-primary text-white hover:bg-primary-dark"
@@ -231,8 +212,9 @@ function CheckoutModal({
     setLoading(true);
     // In production, this would call /api/checkout to create a Stripe session
     await new Promise((r) => setTimeout(r, 1500));
+    const displayPrice = plan?.annualPrice ? `$${plan.annualPrice}/year` : `$${plan?.price}/mo`;
     alert(
-      `Stripe checkout would open here for ${plan?.name} at $${plan?.price}/mo. Email: ${email}`
+      `Stripe checkout would open here for ${plan?.name} at ${displayPrice}. Email: ${email}`
     );
     setLoading(false);
     onClose();
@@ -248,9 +230,9 @@ function CheckoutModal({
           <X className="w-5 h-5" />
         </button>
 
-        <h3 className="text-xl font-bold mb-1">Start your free trial</h3>
+        <h3 className="text-xl font-bold mb-1">Complete your purchase</h3>
         <p className="text-sm text-muted mb-6">
-          14 days free, then ${plan?.price}/mo. Cancel anytime.
+          ${plan?.price}/mo. Cancel anytime.
         </p>
 
         <form onSubmit={handleCheckout}>
@@ -285,7 +267,7 @@ function CheckoutModal({
             disabled={loading}
             className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary-dark transition disabled:opacity-60"
           >
-            {loading ? "Processing..." : `Start Free Trial - $${plan?.price}/mo`}
+            {loading ? "Processing..." : `Subscribe - $${plan?.price}/mo`}
           </button>
 
           <p className="text-xs text-muted text-center mt-3">

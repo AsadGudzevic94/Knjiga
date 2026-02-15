@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ShieldCheck, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -15,15 +17,27 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    // In production: call /api/auth/login with Supabase
-    await new Promise((r) => setTimeout(r, 1000));
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (email && password) {
-      alert("Login would authenticate via Supabase here.");
-    } else {
-      setError("Please enter your email and password.");
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Login failed');
+        setLoading(false);
+        return;
+      }
+
+      // Success - redirect to dashboard
+      router.push('/dashboard');
+    } catch (err) {
+      setError('An error occurred. Please try again.');
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   return (

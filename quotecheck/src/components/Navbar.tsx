@@ -2,10 +2,21 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X, ShieldCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Menu, X, ShieldCheck, User, LogOut, Settings } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Navbar() {
+  const router = useRouter();
+  const { user, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  async function handleSignOut() {
+    await signOut();
+    setUserMenuOpen(false);
+    router.push("/");
+  }
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
@@ -31,12 +42,64 @@ export default function Navbar() {
             <Link href="/pricing" className="text-sm text-muted hover:text-foreground transition">
               Pricing
             </Link>
-            <Link
-              href="/analyze"
-              className="bg-primary text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition"
-            >
-              Check a Quote
-            </Link>
+
+            {user ? (
+              <div className="relative">
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-2 text-sm text-muted hover:text-foreground transition"
+                >
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <User className="w-5 h-5 text-primary" />
+                  </div>
+                </button>
+
+                {userMenuOpen && (
+                  <>
+                    {/* Backdrop to close menu when clicking outside */}
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setUserMenuOpen(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                      <div className="px-4 py-2 border-b border-gray-100">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {user.user_metadata?.full_name || user.email}
+                        </p>
+                        <p className="text-xs text-muted truncate">{user.email}</p>
+                      </div>
+                      <Link
+                        href="/dashboard"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-muted hover:bg-gray-50 hover:text-foreground transition"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <Settings className="w-4 h-4" />
+                        Settings
+                      </Link>
+                      <button
+                        onClick={handleSignOut}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Sign Out
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <>
+                <Link href="/login" className="text-sm text-muted hover:text-foreground transition">
+                  Login
+                </Link>
+                <Link
+                  href="/signup"
+                  className="bg-primary text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition"
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
           </div>
 
           <button
@@ -64,13 +127,47 @@ export default function Navbar() {
             <Link href="/pricing" className="text-sm text-muted py-2" onClick={() => setMobileOpen(false)}>
               Pricing
             </Link>
-            <Link
-              href="/analyze"
-              className="bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-medium text-center hover:bg-primary-dark transition"
-              onClick={() => setMobileOpen(false)}
-            >
-              Check a Quote
-            </Link>
+
+            {user ? (
+              <>
+                <div className="border-t border-gray-100 pt-3 mt-2">
+                  <p className="text-xs text-muted px-2 mb-2">
+                    {user.user_metadata?.full_name || user.email}
+                  </p>
+                </div>
+                <Link
+                  href="/dashboard"
+                  className="flex items-center gap-2 text-sm text-muted py-2"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <Settings className="w-4 h-4" />
+                  Settings
+                </Link>
+                <button
+                  onClick={() => {
+                    handleSignOut();
+                    setMobileOpen(false);
+                  }}
+                  className="flex items-center gap-2 text-sm text-red-600 py-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="text-sm text-muted py-2" onClick={() => setMobileOpen(false)}>
+                  Login
+                </Link>
+                <Link
+                  href="/signup"
+                  className="bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-medium text-center hover:bg-primary-dark transition"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}
