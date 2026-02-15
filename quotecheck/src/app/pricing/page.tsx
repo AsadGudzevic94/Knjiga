@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { CheckCircle, ArrowRight, Zap, X } from "lucide-react";
+import { CheckCircle, ArrowRight, Zap, X, ShieldCheck } from "lucide-react";
 
 const PLANS = [
   {
@@ -86,10 +86,25 @@ export default function PricingPage() {
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4">
               Simple, Honest Pricing
             </h1>
-            <p className="text-muted text-lg max-w-xl mx-auto">
+            <p className="text-muted text-lg max-w-xl mx-auto mb-6">
               One quote check can save you hundreds. The Pro plan pays for
               itself with a single use.
             </p>
+
+            {/* Why No Free Tier */}
+            <div className="max-w-2xl mx-auto bg-amber-50 border border-amber-200 rounded-xl p-6 text-left">
+              <h3 className="font-semibold text-foreground mb-2 flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-amber-600" />
+                Why we don't offer a free tier
+              </h3>
+              <p className="text-sm text-muted leading-relaxed">
+                In today's era of AI bots and automation, bad actors can easily create thousands of fake accounts
+                to abuse free tiers. This drives up costs and forces honest businesses to either raise prices for
+                paying customers or compromise on service quality. We believe in honest pricing: you pay a fair
+                price, we deliver premium AI-powered analysis without artificial restrictions or degraded service.
+                Every subscription helps us maintain quality and keep the service sustainable for everyone.
+              </p>
+            </div>
           </div>
 
           {/* Plans */}
@@ -97,7 +112,7 @@ export default function PricingPage() {
             {PLANS.map((plan) => (
               <div
                 key={plan.id}
-                className={`rounded-2xl p-8 relative ${
+                className={`rounded-2xl p-8 relative flex flex-col ${
                   plan.popular
                     ? "border-2 border-primary shadow-lg shadow-blue-100 bg-white"
                     : "border border-gray-200 bg-white"
@@ -108,29 +123,32 @@ export default function PricingPage() {
                     MOST POPULAR
                   </div>
                 )}
-                <h3 className="text-lg font-semibold mb-1">{plan.name}</h3>
-                <p className="text-sm text-muted mb-5">{plan.description}</p>
-                <p className="text-4xl font-bold mb-1">
-                  ${plan.price}
-                  <span className="text-base font-normal text-muted">
-                    {plan.period}
-                  </span>
-                </p>
-                {plan.annualPrice && (
-                  <p className="text-xs text-muted mb-5">
-                    Billed as ${plan.annualPrice}/year
+                <div className="flex-grow">
+                  <h3 className="text-lg font-semibold mb-1">{plan.name}</h3>
+                  <p className="text-sm text-muted mb-5">{plan.description}</p>
+                  <p className="text-4xl font-bold mb-1">
+                    ${plan.price}
+                    <span className="text-base font-normal text-muted">
+                      {plan.period}
+                    </span>
                   </p>
-                )}
-                {!plan.annualPrice && <div className="mb-5" />}
+                  <div className="h-6 mb-5">
+                    {plan.annualPrice && (
+                      <p className="text-xs text-muted">
+                        Billed as ${plan.annualPrice}/year
+                      </p>
+                    )}
+                  </div>
 
-                <ul className="space-y-3 mb-8">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-center gap-2 text-sm">
-                      <CheckCircle className="w-4 h-4 text-accent shrink-0" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
+                  <ul className="space-y-3 mb-8">
+                    {plan.features.map((f) => (
+                      <li key={f} className="flex items-center gap-2 text-sm">
+                        <CheckCircle className="w-4 h-4 text-accent shrink-0" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
 
                 <button
                   onClick={() => setBillingModal(plan.id)}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
@@ -86,6 +86,42 @@ export default function AnalyzePage() {
   const [result, setResult] = useState<AnalysisResponse | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [quotaInfo, setQuotaInfo] = useState<{
+    quotesUsed: number;
+    quotesLimit: number;
+    quotesRemaining: number;
+  } | null>(null);
+
+  // Load quota info when component mounts
+  useEffect(() => {
+    async function loadQuota() {
+      if (!user) return;
+
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        if (!session.session) return;
+
+        const res = await fetch('/api/usage/check', {
+          headers: {
+            'Authorization': `Bearer ${session.session.access_token}`
+          }
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setQuotaInfo({
+            quotesUsed: data.quotesUsed,
+            quotesLimit: data.quotesLimit,
+            quotesRemaining: data.quotesRemaining
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load quota:', err);
+      }
+    }
+
+    loadQuota();
+  }, [user]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -93,9 +129,28 @@ export default function AnalyzePage() {
     setLoading(true);
 
     try {
+      // Check if user is logged in
+      if (!user) {
+        setError("Please log in to analyze quotes.");
+        setLoading(false);
+        router.push('/login');
+        return;
+      }
+
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) {
+        setError("Please log in to analyze quotes.");
+        setLoading(false);
+        router.push('/login');
+        return;
+      }
+
       const res = await fetch("/api/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.session.access_token}`
+        },
         body: JSON.stringify({
           quoteText,
           serviceCategory: category,
@@ -107,11 +162,29 @@ export default function AnalyzePage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Something went wrong.");
+        if (res.status === 403 && data.redirectTo) {
+          // No subscription
+          setError(data.message || "Active subscription required.");
+          setTimeout(() => router.push(data.redirectTo), 2000);
+        } else if (res.status === 429) {
+          // Quota exceeded
+          setError(data.message || "Monthly quota exceeded.");
+        } else {
+          setError(data.error || "Something went wrong.");
+        }
         return;
       }
 
       setResult(data);
+
+      // Refresh quota after successful analysis
+      if (quotaInfo) {
+        setQuotaInfo({
+          ...quotaInfo,
+          quotesUsed: quotaInfo.quotesUsed + 1,
+          quotesRemaining: quotaInfo.quotesRemaining - 1
+        });
+      }
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -188,6 +261,36 @@ export default function AnalyzePage() {
             <ArrowLeft className="w-4 h-4" />
             Back to home
           </Link>
+
+          {/* Quota Display */}
+          {user && quotaInfo && (
+            <div className="mb-6 p-4 bg-white border border-gray-200 rounded-xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    Monthly Quote Analysis
+                  </p>
+                  <p className="text-xs text-muted mt-0.5">
+                    {quotaInfo.quotesUsed} of {quotaInfo.quotesLimit} used
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-primary">
+                    {quotaInfo.quotesRemaining}
+                  </p>
+                  <p className="text-xs text-muted">remaining</p>
+                </div>
+              </div>
+              <div className="mt-3 w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-primary h-2 rounded-full transition-all"
+                  style={{
+                    width: `${(quotaInfo.quotesUsed / quotaInfo.quotesLimit) * 100}%`
+                  }}
+                />
+              </div>
+            </div>
+          )}
 
           {!result ? (
             <QuoteForm

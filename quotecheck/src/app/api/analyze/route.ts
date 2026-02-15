@@ -4,6 +4,10 @@ import { getRegionalFactor, matchService } from "@/lib/pricing-data";
 import { getAIAnalysis, mergeAIAnalysis } from "@/lib/ai-analysis";
 import { findCachedAnalysis, storeAnalysis } from "@/lib/db";
 import { runScamDetection } from "@/lib/protection-engine";
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 function parseQuoteItems(text: string): { item: string; price: number }[] {
   const items: { item: string; price: number }[] = [];
@@ -275,6 +279,63 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check user authentication and quota
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      return NextResponse.json(
+        { error: "Authentication required. Please log in to analyze quotes." },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Verify user's token
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: "Invalid authentication. Please log in again." },
+        { status: 401 }
+      );
+    }
+
+    // Check user's quota
+    const { data: quotaData, error: quotaError } = await supabase
+      .rpc('check_user_quota', { p_user_id: user.id });
+
+    if (quotaError) {
+      console.error('Quota check error:', quotaError);
+      return NextResponse.json(
+        { error: "Failed to verify subscription status." },
+        { status: 500 }
+      );
+    }
+
+    const quota = quotaData?.[0];
+    if (!quota || !quota.is_subscribed) {
+      return NextResponse.json(
+        {
+          error: "Active subscription required",
+          message: "You need an active Pro subscription to analyze quotes. Visit the pricing page to subscribe.",
+          redirectTo: "/pricing"
+        },
+        { status: 403 }
+      );
+    }
+
+    if (!quota.has_quota) {
+      return NextResponse.json(
+        {
+          error: "Monthly quota exceeded",
+          message: `You've used all ${quota.quotes_limit} quote analyses this month. Your quota resets on the 1st of next month.`,
+          quotasUsed: quota.quotes_used,
+          quotasLimit: quota.quotes_limit
+        },
+        { status: 429 }
+      );
+    }
+
     const region = getRegionalFactor(body.zipCode);
 
     // Step 0: Check the cache for a similar previous analysis
@@ -382,6 +443,18 @@ export async function POST(request: NextRequest) {
       console.log(`[QuoteCheck] Stored analysis #${id}`);
     } catch (storeErr) {
       console.error("[QuoteCheck] Failed to store analysis:", storeErr);
+    }
+
+    // Step 5: Increment user's usage counter (after successful analysis)
+    try {
+      await supabase.rpc('increment_user_usage', {
+        p_user_id: user.id,
+        p_api_cost: 0.03 // Average cost per Claude API call
+      });
+      console.log(`[QuoteCheck] Incremented usage for user ${user.id}`);
+    } catch (usageErr) {
+      console.error("[QuoteCheck] Failed to increment usage:", usageErr);
+      // Don't fail the request if usage tracking fails
     }
 
     return NextResponse.json({

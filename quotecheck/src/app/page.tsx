@@ -109,7 +109,7 @@ export default function LandingPage() {
               href="/analyze"
               className="inline-flex items-center justify-center gap-2 bg-primary text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-primary-dark transition shadow-lg shadow-blue-200"
             >
-              Check a Quote Free
+              Start Checking Quotes
               <ArrowRight className="w-5 h-5" />
             </Link>
             <a
@@ -351,46 +351,35 @@ export default function LandingPage() {
       {/* Pricing */}
       <section id="pricing" className="py-20 px-4 bg-white">
         <div className="max-w-4xl mx-auto">
+          <div className="inline-flex items-center gap-2 bg-blue-100 text-primary px-4 py-1.5 rounded-full text-sm font-medium mb-4 mx-auto block w-fit">
+            <Zap className="w-4 h-4" />
+            No free trials. No games. Just honest pricing.
+          </div>
           <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4">
             Simple, Honest Pricing
           </h2>
-          <p className="text-muted text-center max-w-xl mx-auto mb-14">
-            Start free. Upgrade when you need more.
+          <p className="text-muted text-center max-w-xl mx-auto mb-8">
+            One quote check can save you hundreds. The Pro plan pays for itself with a single use.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
-            {/* Free */}
-            <div className="rounded-2xl border border-gray-200 p-8">
-              <h3 className="text-lg font-semibold mb-1">Free</h3>
-              <p className="text-sm text-muted mb-5">For occasional quote checks</p>
-              <p className="text-4xl font-bold mb-6">
-                $0<span className="text-base font-normal text-muted">/mo</span>
-              </p>
-              <ul className="space-y-3 mb-8">
-                <PricingItem text="3 quote checks per month" />
-                <PricingItem text="Fairness score & price range" />
-                <PricingItem text="Basic line-item analysis" />
-                <PricingItem text="General negotiation tips" />
-              </ul>
-              <Link
-                href="/analyze"
-                className="block text-center py-3 rounded-xl border-2 border-gray-200 font-semibold hover:border-primary hover:text-primary transition"
-              >
-                Get Started Free
-              </Link>
-            </div>
 
-            {/* Pro */}
-            <div className="rounded-2xl border-2 border-primary p-8 relative shadow-lg shadow-blue-100">
-              <div className="absolute -top-3 right-6 bg-primary text-white text-xs font-bold px-3 py-1 rounded-full">
-                MOST POPULAR
-              </div>
-              <h3 className="text-lg font-semibold mb-1">Pro</h3>
+          {/* Why No Free Tier - Compact Version */}
+          <div className="max-w-2xl mx-auto bg-amber-50 border border-amber-200 rounded-xl p-4 text-center mb-14">
+            <p className="text-sm text-muted leading-relaxed">
+              <strong className="text-foreground">Why no free tier?</strong> In today's era of AI bots, bad actors can create thousands of fake accounts to abuse free tiers. We believe in honest pricing: you pay a fair price, we deliver premium AI-powered analysis without compromises.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+            {/* Pro Monthly */}
+            <div className="rounded-2xl border border-gray-200 p-8 flex flex-col">
+              <h3 className="text-lg font-semibold mb-1">Pro Monthly</h3>
               <p className="text-sm text-muted mb-5">For anyone who hates overpaying</p>
-              <p className="text-4xl font-bold mb-6">
-                $9.99<span className="text-base font-normal text-muted">/mo</span>
+              <p className="text-4xl font-bold mb-1">
+                $20<span className="text-base font-normal text-muted">/mo</span>
               </p>
-              <ul className="space-y-3 mb-8">
-                <PricingItem text="Unlimited quote checks" />
+              <div className="h-6 mb-5"></div>
+              <ul className="space-y-3 mb-8 flex-grow">
+                <PricingItem text="100 quote checks per month" />
                 <PricingItem text="Detailed line-item analysis" />
                 <PricingItem text="Custom negotiation scripts" />
                 <PricingItem text="Quote history & savings tracker" />
@@ -398,10 +387,39 @@ export default function LandingPage() {
                 <PricingItem text="Email & PDF reports" />
               </ul>
               <Link
-                href="/analyze"
+                href="/pricing"
+                className="block text-center py-3 rounded-xl border-2 border-gray-200 font-semibold hover:border-primary hover:text-primary transition"
+              >
+                Get Started
+              </Link>
+            </div>
+
+            {/* Pro Annual */}
+            <div className="rounded-2xl border-2 border-primary p-8 relative shadow-lg shadow-blue-100 flex flex-col">
+              <div className="absolute -top-3 right-6 bg-primary text-white text-xs font-bold px-3 py-1 rounded-full">
+                MOST POPULAR
+              </div>
+              <h3 className="text-lg font-semibold mb-1">Pro Annual</h3>
+              <p className="text-sm text-muted mb-5">Best value - save 50%</p>
+              <p className="text-4xl font-bold mb-1">
+                $10<span className="text-base font-normal text-muted">/mo</span>
+              </p>
+              <div className="h-6 mb-5">
+                <p className="text-xs text-muted">Billed as $120/year</p>
+              </div>
+              <ul className="space-y-3 mb-8 flex-grow">
+                <PricingItem text="100 quote checks per month" />
+                <PricingItem text="Save 50% vs monthly" />
+                <PricingItem text="All Pro Monthly features" />
+                <PricingItem text="Priority support" />
+                <PricingItem text="Early access to new features" />
+                <PricingItem text="Exclusive price database" />
+              </ul>
+              <Link
+                href="/pricing"
                 className="block text-center py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary-dark transition"
               >
-                Start Pro Trial
+                Get Started
               </Link>
             </div>
           </div>
@@ -415,16 +433,24 @@ export default function LandingPage() {
             Stop Overpaying. Start Checking.
           </h2>
           <p className="text-blue-100 text-lg mb-8 max-w-xl mx-auto">
-            Join thousands of smart consumers who check every quote before
-            they pay. Your first 3 checks are completely free.
+            Join thousands of smart consumers who check every quote before they pay.
+            One quote check can save you hundreds of dollars.
           </p>
-          <Link
-            href="/analyze"
-            className="inline-flex items-center gap-2 bg-white text-primary px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-50 transition shadow-lg"
-          >
-            Check Your First Quote
-            <ArrowRight className="w-5 h-5" />
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link
+              href="/pricing"
+              className="inline-flex items-center gap-2 bg-white text-primary px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-50 transition shadow-lg"
+            >
+              View Pricing
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 bg-blue-700 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-800 transition border border-blue-500"
+            >
+              Sign In
+            </Link>
+          </div>
         </div>
       </section>
 

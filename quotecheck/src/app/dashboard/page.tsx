@@ -161,6 +161,11 @@ export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const [quotes, setQuotes] = useState<SavedQuote[]>([]);
   const [loading, setLoading] = useState(true);
+  const [quotaInfo, setQuotaInfo] = useState<{
+    quotesUsed: number;
+    quotesLimit: number;
+    quotesRemaining: number;
+  } | null>(null);
 
   useEffect(() => {
     // Redirect if not logged in
@@ -169,7 +174,7 @@ export default function DashboardPage() {
       return;
     }
 
-    // Fetch user's quotes
+    // Fetch user's quotes and quota
     async function fetchQuotes() {
       if (!user) return;
 
@@ -180,6 +185,7 @@ export default function DashboardPage() {
           return;
         }
 
+        // Fetch quotes
         const response = await fetch('/api/quotes/list', {
           headers: {
             'Authorization': `Bearer ${session.session.access_token}`,
@@ -193,6 +199,22 @@ export default function DashboardPage() {
           console.error('Failed to fetch quotes');
           // If no quotes yet, show empty state
           setQuotes([]);
+        }
+
+        // Fetch quota info
+        const quotaResponse = await fetch('/api/usage/check', {
+          headers: {
+            'Authorization': `Bearer ${session.session.access_token}`,
+          },
+        });
+
+        if (quotaResponse.ok) {
+          const quotaData = await quotaResponse.json();
+          setQuotaInfo({
+            quotesUsed: quotaData.quotesUsed,
+            quotesLimit: quotaData.quotesLimit,
+            quotesRemaining: quotaData.quotesRemaining
+          });
         }
       } catch (error) {
         console.error('Error fetching quotes:', error);
@@ -306,6 +328,41 @@ export default function DashboardPage() {
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
+
+          {/* Quota Display */}
+          {quotaInfo && (
+            <div className="mb-6 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    Monthly Quota
+                  </p>
+                  <p className="text-xs text-muted mt-0.5">
+                    Resets on the 1st of each month
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-bold text-primary">
+                    {quotaInfo.quotesRemaining}
+                  </p>
+                  <p className="text-xs text-muted">remaining</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 bg-white/50 rounded-full h-3 overflow-hidden">
+                  <div
+                    className="bg-primary h-3 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${(quotaInfo.quotesUsed / quotaInfo.quotesLimit) * 100}%`
+                    }}
+                  />
+                </div>
+                <span className="text-xs font-medium text-muted whitespace-nowrap">
+                  {quotaInfo.quotesUsed} / {quotaInfo.quotesLimit}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Stats cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
