@@ -22,6 +22,11 @@ const AGENT_TOOLS: Tool[] = [
       required: ["url"],
     },
   },
+  {
+    type: "web_search_20250305" as any,
+    name: "web_search",
+    max_uses: 5,
+  },
 ];
 
 // ── System prompt ───────────────────────────────────────────
@@ -142,11 +147,6 @@ Include 3-6 insights based on industry knowledge and typical pricing patterns. F
       system: SYSTEM_PROMPT,
       tools: AGENT_TOOLS,
       messages,
-      // Enable Claude's built-in web search
-      extended_thinking: {
-        enabled: true,
-        include_web_search: true
-      }
     });
 
     // Agentic loop — keep going while Claude wants to use tools
@@ -192,11 +192,6 @@ Include 3-6 insights based on industry knowledge and typical pricing patterns. F
         system: SYSTEM_PROMPT,
         tools: AGENT_TOOLS,
         messages,
-        // Enable Claude's built-in web search
-        extended_thinking: {
-          enabled: true,
-          include_web_search: true
-        }
       });
     }
 
