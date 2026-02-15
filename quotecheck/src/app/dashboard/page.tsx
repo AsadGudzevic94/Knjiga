@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 import {
   BarChart,
   Bar,
@@ -154,7 +157,55 @@ const SCORE_COLORS = {
 const PIE_COLORS = ["#22c55e", "#eab308", "#ef4444"];
 
 export default function DashboardPage() {
-  const [quotes, setQuotes] = useState<SavedQuote[]>(DEMO_QUOTES);
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+  const [quotes, setQuotes] = useState<SavedQuote[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Redirect if not logged in
+    if (!authLoading && !user) {
+      router.push('/login');
+      return;
+    }
+
+    // Fetch user's quotes
+    async function fetchQuotes() {
+      if (!user) return;
+
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        if (!session.session) {
+          router.push('/login');
+          return;
+        }
+
+        const response = await fetch('/api/quotes/list', {
+          headers: {
+            'Authorization': `Bearer ${session.session.access_token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setQuotes(data.quotes || []);
+        } else {
+          console.error('Failed to fetch quotes');
+          // If no quotes yet, show empty state
+          setQuotes([]);
+        }
+      } catch (error) {
+        console.error('Error fetching quotes:', error);
+        setQuotes([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (user) {
+      fetchQuotes();
+    }
+  }, [user, authLoading, router]);
 
   const stats = useMemo(() => {
     const totalSaved = quotes.reduce((s, q) => s + q.savings, 0);
@@ -211,6 +262,25 @@ export default function DashboardPage() {
 
   function removeQuote(id: string) {
     setQuotes((prev) => prev.filter((q) => q.id !== id));
+  }
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="pt-24 pb-16 px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center py-20">
+              <p className="text-muted">Loading your dashboard...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // Will redirect to login
   }
 
   return (
