@@ -16,6 +16,29 @@ export interface CommunityInsight {
   sentiment: "supports_price" | "price_too_high" | "neutral";
 }
 
+export interface ScamFlag {
+  name: string;
+  description: string;
+  severity: "critical" | "warning" | "info";
+  matchedOn: string;
+  whatToDo: string;
+  realExample?: string;
+}
+
+export interface HiddenFeeWarning {
+  fee: string;
+  likelihood: "very_likely" | "likely" | "possible";
+  typicalRange: string;
+  description: string;
+}
+
+export interface SeasonalAdvice {
+  bestMonths: string;
+  worstMonths: string;
+  savingsPercent: string;
+  explanation: string;
+}
+
 export interface QuoteAnalysis {
   overallScore: number; // 1-10
   overallVerdict: "great_deal" | "fair" | "slightly_high" | "overpriced" | "ripoff";
@@ -32,18 +55,21 @@ export interface QuoteAnalysis {
 
   /** AI-generated deep analysis - the "meat" of the response */
   aiAnalysis?: {
-    /** Detailed narrative explaining the score (like talking to a knowledgeable friend) */
     detailedExplanation: string;
-    /** What people typically report paying on Reddit/forums */
     communityInsights: CommunityInsight[];
-    /** Specific factors that justify the score */
     scoreJustification: string;
-    /** Regional context */
     regionalContext: string;
-    /** What to watch out for with this type of service */
     watchOutFor: string[];
-    /** Whether AI analysis was used */
     poweredByAi: boolean;
+  };
+
+  /** Scam pattern detection results */
+  protection?: {
+    scamFlags: ScamFlag[];
+    hiddenFees: HiddenFeeWarning[];
+    seasonalTip: SeasonalAdvice | null;
+    smartQuestions: string[];
+    riskLevel: "low" | "medium" | "high";
   };
 }
 
@@ -51,4 +77,5 @@ export interface AnalyzeRequest {
   quoteText: string;
   serviceCategory: string;
   zipCode: string;
+  businessName?: string;
 }
