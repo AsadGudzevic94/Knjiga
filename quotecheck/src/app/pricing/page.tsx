@@ -220,22 +220,39 @@ function CheckoutModal({
   planId: string;
   onClose: () => void;
 }) {
-  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const plan = PLANS.find((p) => p.id === planId);
 
-  async function handleCheckout(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleCheckout() {
     setLoading(true);
-    // In production, this would call /api/checkout to create a Stripe session
-    await new Promise((r) => setTimeout(r, 1500));
-    const displayPrice = plan?.annualPrice ? `$${plan.annualPrice}/year` : `$${plan?.price}/mo`;
-    alert(
-      `Stripe checkout would open here for ${plan?.name} at ${displayPrice}. Email: ${email}`
-    );
-    setLoading(false);
-    onClose();
+    setError("");
+
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Not logged in - redirect to login
+          window.location.href = "/login?redirect=/pricing";
+          return;
+        }
+        throw new Error(data.error || "Failed to create checkout");
+      }
+
+      // Redirect to Lemon Squeezy checkout
+      window.location.href = data.checkoutUrl;
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+      setLoading(false);
+    }
   }
 
   return (
@@ -244,54 +261,58 @@ function CheckoutModal({
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-muted hover:text-foreground"
+          disabled={loading}
         >
           <X className="w-5 h-5" />
         </button>
 
-        <h3 className="text-xl font-bold mb-1">Complete your purchase</h3>
+        <h3 className="text-xl font-bold mb-1">Ready to subscribe?</h3>
         <p className="text-sm text-muted mb-6">
-          ${plan?.price}/mo. Cancel anytime.
+          {plan?.name} - ${plan?.price}/mo. Cancel anytime.
         </p>
 
-        <form onSubmit={handleCheckout}>
-          <div className="mb-4">
-            <label className="text-sm font-medium text-foreground mb-2 block">
-              Email address
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              required
-            />
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+            {error}
           </div>
+        )}
 
-          <div className="mb-4">
-            <label className="text-sm font-medium text-foreground mb-2 block">
-              Card details
-            </label>
-            <div className="border border-gray-200 rounded-xl px-4 py-3 text-sm text-muted bg-gray-50">
-              Stripe payment form would load here
-            </div>
-            <p className="text-xs text-muted mt-1">
-              Powered by Stripe. Your card is never stored on our servers.
-            </p>
+        <div className="mb-6 space-y-2 text-sm">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-accent" />
+            <span>500 quote checks per month</span>
           </div>
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-accent" />
+            <span>AI-powered analysis with web search</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-accent" />
+            <span>30-day money-back guarantee</span>
+          </div>
+        </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary-dark transition disabled:opacity-60"
-          >
-            {loading ? "Processing..." : `Subscribe - $${plan?.price}/mo`}
-          </button>
+        <button
+          onClick={handleCheckout}
+          disabled={loading}
+          className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary-dark transition disabled:opacity-60 flex items-center justify-center gap-2"
+        >
+          {loading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Redirecting to checkout...
+            </>
+          ) : (
+            <>
+              Continue to Checkout
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
+        </button>
 
-          <p className="text-xs text-muted text-center mt-3">
-            30-day money-back guarantee. Cancel anytime.
-          </p>
-        </form>
+        <p className="text-xs text-muted text-center mt-4">
+          Secure payment powered by Lemon Squeezy
+        </p>
       </div>
     </div>
   );
