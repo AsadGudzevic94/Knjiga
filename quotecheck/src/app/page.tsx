@@ -379,7 +379,7 @@ export default function LandingPage() {
               </p>
               <div className="h-6 mb-5"></div>
               <ul className="space-y-3 mb-8 flex-grow">
-                <PricingItem text="100 quote checks per month" />
+                <PricingItem text="500 quote checks per month" />
                 <PricingItem text="Detailed line-item analysis" />
                 <PricingItem text="Custom negotiation scripts" />
                 <PricingItem text="Quote history & savings tracker" />
@@ -408,7 +408,7 @@ export default function LandingPage() {
                 <p className="text-xs text-muted">Billed as $120/year</p>
               </div>
               <ul className="space-y-3 mb-8 flex-grow">
-                <PricingItem text="100 quote checks per month" />
+                <PricingItem text="500 quote checks per month" />
                 <PricingItem text="Save 50% vs monthly" />
                 <PricingItem text="All Pro Monthly features" />
                 <PricingItem text="Priority support" />

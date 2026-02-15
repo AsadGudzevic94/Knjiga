@@ -14,7 +14,7 @@ const PLANS = [
     period: "/mo",
     description: "For anyone who hates overpaying",
     features: [
-      "Unlimited quote checks",
+      "500 quote checks per month",
       "Detailed line-item analysis",
       "Custom negotiation scripts",
       "Quote history & savings tracker",
