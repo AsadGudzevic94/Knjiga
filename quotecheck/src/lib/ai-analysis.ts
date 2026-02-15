@@ -26,24 +26,26 @@ const AGENT_TOOLS: Tool[] = [
 
 // ── System prompt ───────────────────────────────────────────
 
-const SYSTEM_PROMPT = `You are QuoteCheck AI — a consumer pricing analysis expert. Your job is to analyze whether a service quote is fair based on your knowledge of typical pricing, regional factors, and common industry practices.
+const SYSTEM_PROMPT = `You are QuoteCheck AI — a consumer pricing analysis expert. Your job is to analyze whether a service quote is fair based on REAL, CURRENT pricing data from the web.
 
-You have one tool:
+You have web search capabilities and one tool:
 1. read_page — Read the content of a web page when a specific URL is provided
 
 YOUR ANALYSIS PROCESS:
-1. Analyze each line item in the quote based on typical market rates
-2. Consider regional pricing factors for the customer's area
-3. Identify common overcharging patterns or suspicious pricing
-4. Provide specific price ranges based on industry knowledge
-5. Synthesize everything into a comprehensive analysis
+1. **Search the web** for current pricing data for each service/item in the quote
+2. Find real examples from pricing guides, Reddit discussions, consumer forums, and review sites
+3. Compare the quoted prices against real market data you find
+4. Consider regional pricing factors for the customer's area
+5. Identify common overcharging patterns mentioned in consumer discussions
+6. Synthesize everything into a comprehensive analysis with specific evidence
 
-BE THOROUGH AND HONEST:
-- Base your analysis on typical market rates and industry standards
-- Be transparent that you're using general knowledge, not live search data
-- If you're uncertain about specific pricing, acknowledge it
-- Be direct and conversational — write like a knowledgeable friend, not a corporate report
-- Give specific numbers and ranges based on typical market rates`;
+BE THOROUGH AND SEARCH-DRIVEN:
+- **Always search the web** for current pricing information before analyzing
+- Look for Reddit threads, consumer forums, pricing guides, and review sites
+- Quote specific sources and real prices you find
+- Include actual URLs and snippets from your research
+- Be direct and conversational — write like a knowledgeable friend who just researched this for them
+- Give specific numbers and ranges based on REAL data you just found, not just general knowledge`;
 
 // ── Agentic analysis ────────────────────────────────────────
 
@@ -78,7 +80,14 @@ export async function getAIAnalysis(
 
   const userPrompt = `I need you to analyze this ${category} quote for a customer in zip code ${zipCode} (${region.label} area).
 
-Analyze based on your knowledge of typical market rates and industry standards.
+**IMPORTANT: Use web search to find REAL, CURRENT pricing data before analyzing.**
+
+Search for:
+- Current ${category} pricing guides and articles
+- Reddit discussions about ${category} costs
+- Consumer forum threads about fair prices
+- Recent reviews mentioning pricing
+- Regional cost comparisons for ${region.label}
 
 THE QUOTE TO ANALYZE:
 ---
@@ -93,10 +102,11 @@ OUR PRELIMINARY ANALYSIS:
 ${lineItemsSummary}
 
 ANALYSIS STEPS:
-1. Evaluate typical costs of each line item for ${region.label} area
-2. Consider what people typically pay for similar ${category.toLowerCase()} services
-3. Identify common overcharging patterns in ${category.toLowerCase()}
-4. Apply regional cost factors for ${region.label}
+1. **SEARCH THE WEB** for current ${category.toLowerCase()} pricing in ${region.label}
+2. Find real examples of what people are paying (check Reddit, forums, pricing guides)
+3. Compare each line item against real market data you find
+4. Look for consumer discussions about fair vs overpriced ${category.toLowerCase()} services
+5. Gather specific price ranges from multiple sources
 
 After your analysis, respond with ONLY a JSON object (no markdown wrapping, no explanation outside the JSON) with this structure:
 {
@@ -132,6 +142,11 @@ Include 3-6 insights based on industry knowledge and typical pricing patterns. F
       system: SYSTEM_PROMPT,
       tools: AGENT_TOOLS,
       messages,
+      // Enable Claude's built-in web search
+      extended_thinking: {
+        enabled: true,
+        include_web_search: true
+      }
     });
 
     // Agentic loop — keep going while Claude wants to use tools
@@ -177,6 +192,11 @@ Include 3-6 insights based on industry knowledge and typical pricing patterns. F
         system: SYSTEM_PROMPT,
         tools: AGENT_TOOLS,
         messages,
+        // Enable Claude's built-in web search
+        extended_thinking: {
+          enabled: true,
+          include_web_search: true
+        }
       });
     }
 
