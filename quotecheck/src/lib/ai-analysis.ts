@@ -1,32 +1,16 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { QuoteAnalysis, CommunityInsight, LineItemAnalysis } from "./types";
 import { getRegionalFactor } from "./pricing-data";
-import { webSearch, fetchPage } from "./search-tools";
+import { fetchPage } from "./search-tools";
 import type { Tool, MessageParam, ContentBlock } from "@anthropic-ai/sdk/resources/messages";
 
 // ── Tool definitions for the AI agent ───────────────────────
 
 const AGENT_TOOLS: Tool[] = [
   {
-    name: "search_web",
-    description:
-      "Search the web for real pricing data, Reddit discussions, forum posts, and consumer reports about service costs. Use specific queries like 'brake pad replacement cost 2024 reddit' or 'average plumber hourly rate Austin TX'. Call this multiple times with different queries to gather comprehensive data.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        query: {
-          type: "string",
-          description:
-            "Search query — be specific. Include the service type, location if relevant, and target sources like 'reddit', 'forum', 'cost', 'price', 'average'.",
-        },
-      },
-      required: ["query"],
-    },
-  },
-  {
     name: "read_page",
     description:
-      "Fetch and read the content of a specific web page — useful for reading Reddit threads, forum discussions, or pricing guides found via search. Returns the text content of the page.",
+      "Fetch and read the content of a specific web page — useful for reading pricing guides, forum discussions, or review pages when a URL is provided by the user. Returns the text content of the page.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -42,27 +26,24 @@ const AGENT_TOOLS: Tool[] = [
 
 // ── System prompt ───────────────────────────────────────────
 
-const SYSTEM_PROMPT = `You are QuoteCheck AI — a consumer pricing research agent. Your job is to deeply research whether a service quote is fair by searching the internet for REAL pricing data.
+const SYSTEM_PROMPT = `You are QuoteCheck AI — a consumer pricing analysis expert. Your job is to analyze whether a service quote is fair based on your knowledge of typical pricing, regional factors, and common industry practices.
 
-You have two tools:
-1. search_web — Search the internet for pricing data, Reddit discussions, forum posts, consumer reviews
-2. read_page — Read the full content of a web page (Reddit thread, pricing guide, etc.)
+You have one tool:
+1. read_page — Read the content of a web page when a specific URL is provided
 
-YOUR RESEARCH PROCESS:
-1. FIRST, search for the specific services in the quote + "cost" / "price" / "reddit" / "forum"
-2. Read 2-3 of the most relevant results (especially Reddit threads where people discuss what they paid)
-3. Search for regional pricing data for the customer's area
-4. Search for any common scams or overcharging patterns for this service type
-5. THEN synthesize everything into your analysis
+YOUR ANALYSIS PROCESS:
+1. Analyze each line item in the quote based on typical market rates
+2. Consider regional pricing factors for the customer's area
+3. Identify common overcharging patterns or suspicious pricing
+4. Provide specific price ranges based on industry knowledge
+5. Synthesize everything into a comprehensive analysis
 
-BE THOROUGH. Do at least 3-5 searches and read at least 2-3 pages before giving your final answer. Real data > assumptions.
-
-IMPORTANT:
-- ALWAYS cite your actual sources with real URLs from your research
-- Quote specific data points you found (e.g., "A user on r/MechanicAdvice reported paying $180 for front brake pads at an independent shop in Texas")
-- If you can't find specific data for an item, say so honestly rather than making it up
+BE THOROUGH AND HONEST:
+- Base your analysis on typical market rates and industry standards
+- Be transparent that you're using general knowledge, not live search data
+- If you're uncertain about specific pricing, acknowledge it
 - Be direct and conversational — write like a knowledgeable friend, not a corporate report
-- Give specific numbers and ranges based on what you actually found online`;
+- Give specific numbers and ranges based on typical market rates`;
 
 // ── Agentic analysis ────────────────────────────────────────
 
@@ -86,7 +67,6 @@ export async function getAIAnalysis(
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
-  const hasSearchKey = !!process.env.BRAVE_SEARCH_API_KEY;
   const region = getRegionalFactor(zipCode);
 
   const lineItemsSummary = ruleBasedResult.lineItems
@@ -96,13 +76,9 @@ export async function getAIAnalysis(
     )
     .join("\n");
 
-  const toolInstructions = hasSearchKey
-    ? `You HAVE web search and page reading tools available. USE THEM to research real pricing data before giving your analysis. Do at least 3-5 searches.`
-    : `Web search is not currently available. Provide the best analysis you can based on your training data. Be honest that this is based on general knowledge rather than live data.`;
+  const userPrompt = `I need you to analyze this ${category} quote for a customer in zip code ${zipCode} (${region.label} area).
 
-  const userPrompt = `I need you to research and analyze this ${category} quote for a customer in zip code ${zipCode} (${region.label} area).
-
-${toolInstructions}
+Analyze based on your knowledge of typical market rates and industry standards.
 
 THE QUOTE TO ANALYZE:
 ---
@@ -116,31 +92,31 @@ OUR PRELIMINARY ANALYSIS:
 - Line items:
 ${lineItemsSummary}
 
-RESEARCH STEPS:
-1. Search for typical costs of each line item in or near ${region.label}
-2. Find Reddit/forum discussions about people paying for similar ${category.toLowerCase()} services
-3. Look up common overcharging patterns in ${category.toLowerCase()}
-4. Check regional cost factors for ${region.label}
+ANALYSIS STEPS:
+1. Evaluate typical costs of each line item for ${region.label} area
+2. Consider what people typically pay for similar ${category.toLowerCase()} services
+3. Identify common overcharging patterns in ${category.toLowerCase()}
+4. Apply regional cost factors for ${region.label}
 
-After your research, respond with ONLY a JSON object (no markdown wrapping, no explanation outside the JSON) with this structure:
+After your analysis, respond with ONLY a JSON object (no markdown wrapping, no explanation outside the JSON) with this structure:
 {
-  "detailedExplanation": "3-5 paragraphs. Reference the ACTUAL sources you found — include specific data points, quotes from forum users, and pricing data. Cite URLs where possible. Write conversationally.",
+  "detailedExplanation": "3-5 paragraphs. Provide specific analysis of the pricing based on typical market rates. Explain what's fair, what's questionable, and why. Write conversationally.",
   "communityInsights": [
     {
-      "source": "Source name (e.g. Reddit r/MechanicAdvice, HomeAdvisor, RepairPal)",
-      "snippet": "What you found — specific quote, data point, or user report. Include the URL if you have it.",
+      "source": "Source type (e.g. Industry standards, Typical market rates, Consumer reports)",
+      "snippet": "Key insight about typical pricing or common practices in this service category",
       "sentiment": "supports_price" | "price_too_high" | "neutral"
     }
   ],
-  "scoreJustification": "Concrete reasoning based on your research for the fairness score.",
-  "regionalContext": "How pricing in ${region.label} (zip ${zipCode}) compares based on what you found.",
-  "watchOutFor": ["Specific warnings based on what you found in your research about this service type"],
+  "scoreJustification": "Concrete reasoning based on industry standards and typical market rates for the fairness score.",
+  "regionalContext": "How pricing in ${region.label} (zip ${zipCode}) typically compares to national averages.",
+  "watchOutFor": ["Specific warnings based on common issues and overcharging patterns in this service type"],
   "lineItemExplanations": {
-    "item name": "What your research found about the fair price for this specific item. Cite sources."
+    "item name": "What typical market rates are for this specific item and whether this quote is fair."
   }
 }
 
-Include 3-6 community insights based on real sources you found. For lineItemExplanations, include every line item from the quote.`;
+Include 3-6 insights based on industry knowledge and typical pricing patterns. For lineItemExplanations, include every line item from the quote.`;
 
   try {
     const client = new Anthropic({ apiKey });
@@ -154,7 +130,7 @@ Include 3-6 community insights based on real sources you found. For lineItemExpl
       model: "claude-sonnet-4-5-20250929",
       max_tokens: 4096,
       system: SYSTEM_PROMPT,
-      tools: hasSearchKey ? AGENT_TOOLS : [],
+      tools: AGENT_TOOLS,
       messages,
     });
 
@@ -172,20 +148,7 @@ Include 3-6 community insights based on real sources you found. For lineItemExpl
       for (const toolUse of toolUseBlocks) {
         let result: string;
 
-        if (toolUse.name === "search_web") {
-          const input = toolUse.input as { query: string };
-          console.log(`[QuoteCheck Agent] Searching: "${input.query}"`);
-          const results = await webSearch(input.query);
-          result =
-            results.length > 0
-              ? results
-                  .map(
-                    (r, i) =>
-                      `${i + 1}. ${r.title}\n   URL: ${r.url}\n   ${r.snippet}`
-                  )
-                  .join("\n\n")
-              : "No results found for this query.";
-        } else if (toolUse.name === "read_page") {
+        if (toolUse.name === "read_page") {
           const input = toolUse.input as { url: string };
           console.log(`[QuoteCheck Agent] Reading: ${input.url}`);
           const page = await fetchPage(input.url);
@@ -212,7 +175,7 @@ Include 3-6 community insights based on real sources you found. For lineItemExpl
         model: "claude-sonnet-4-5-20250929",
         max_tokens: 4096,
         system: SYSTEM_PROMPT,
-        tools: hasSearchKey ? AGENT_TOOLS : [],
+        tools: AGENT_TOOLS,
         messages,
       });
     }

@@ -1,81 +1,17 @@
 /**
- * Web search and page fetching tools for the AI agent.
+ * Page fetching tools for the AI agent.
  *
- * Search providers (in priority order):
- *   1. Brave Search API (BRAVE_SEARCH_API_KEY) — free tier: 1000 queries/month
- *   2. Fallback: no search, Claude uses training data only
+ * Web search functionality has been removed - Claude API now operates
+ * using its training data and reasoning capabilities without live search.
  *
- * Page fetching uses plain fetch + HTML-to-text extraction.
+ * Page fetching is still available via plain fetch + HTML-to-text extraction.
  */
-
-export interface SearchResult {
-  title: string;
-  url: string;
-  snippet: string;
-}
 
 export interface PageContent {
   url: string;
   title: string;
   text: string;
   truncated: boolean;
-}
-
-// ── Web Search ──────────────────────────────────────────────
-
-export async function webSearch(
-  query: string,
-  numResults: number = 8
-): Promise<SearchResult[]> {
-  const braveKey = process.env.BRAVE_SEARCH_API_KEY;
-
-  if (braveKey) {
-    return braveSearch(query, numResults, braveKey);
-  }
-
-  // No search API available
-  console.warn("No search API key found. AI will use training data only.");
-  return [];
-}
-
-async function braveSearch(
-  query: string,
-  count: number,
-  apiKey: string
-): Promise<SearchResult[]> {
-  const params = new URLSearchParams({
-    q: query,
-    count: String(count),
-    text_decorations: "false",
-    search_lang: "en",
-  });
-
-  const res = await fetch(
-    `https://api.search.brave.com/res/v1/web/search?${params}`,
-    {
-      headers: {
-        Accept: "application/json",
-        "Accept-Encoding": "gzip",
-        "X-Subscription-Token": apiKey,
-      },
-    }
-  );
-
-  if (!res.ok) {
-    console.error("Brave search failed:", res.status, await res.text());
-    return [];
-  }
-
-  const data = await res.json();
-  const results: SearchResult[] = (data.web?.results || []).map(
-    (r: { title: string; url: string; description: string }) => ({
-      title: r.title,
-      url: r.url,
-      snippet: r.description,
-    })
-  );
-
-  return results;
 }
 
 // ── Page Fetcher ────────────────────────────────────────────
