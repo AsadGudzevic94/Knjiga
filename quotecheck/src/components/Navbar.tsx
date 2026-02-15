@@ -22,6 +22,9 @@ export default function Navbar() {
             <Link href="/compare" className="text-sm text-muted hover:text-foreground transition">
               Compare
             </Link>
+            <Link href="/prices" className="text-sm text-muted hover:text-foreground transition">
+              Community Prices
+            </Link>
             <Link href="/dashboard" className="text-sm text-muted hover:text-foreground transition">
               Dashboard
             </Link>
@@ -51,6 +54,9 @@ export default function Navbar() {
           <div className="flex flex-col gap-3">
             <Link href="/compare" className="text-sm text-muted py-2" onClick={() => setMobileOpen(false)}>
               Compare Quotes
+            </Link>
+            <Link href="/prices" className="text-sm text-muted py-2" onClick={() => setMobileOpen(false)}>
+              Community Prices
             </Link>
             <Link href="/dashboard" className="text-sm text-muted py-2" onClick={() => setMobileOpen(false)}>
               Dashboard

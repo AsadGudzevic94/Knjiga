@@ -26,7 +26,13 @@ import {
   ThumbsUp,
   ThumbsDown,
   Minus,
+  Zap,
+  Database,
 } from "lucide-react";
+
+interface AnalysisResponse extends QuoteAnalysis {
+  _cache?: { hit: boolean; type?: string; similarity?: number; ageHours?: number };
+}
 
 const CATEGORIES = [
   { value: "auto_repair", label: "Auto Repair" },
@@ -63,7 +69,7 @@ export default function AnalyzePage() {
   const [zipCode, setZipCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState<QuoteAnalysis | null>(null);
+  const [result, setResult] = useState<AnalysisResponse | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -321,7 +327,7 @@ function ResultsView({
   result,
   onReset,
 }: {
-  result: QuoteAnalysis;
+  result: AnalysisResponse;
   onReset: () => void;
 }) {
   const [scriptCopied, setScriptCopied] = useState(false);
@@ -370,6 +376,22 @@ function ResultsView({
           Analyze another quote
         </button>
       </div>
+
+      {/* Cache indicator */}
+      {result._cache?.hit && (
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-indigo-50 border border-indigo-100 rounded-xl text-sm">
+          <Zap className="w-4 h-4 text-indigo-500" />
+          <span className="text-indigo-700 font-medium">Instant result</span>
+          <span className="text-indigo-500">
+            {result._cache.type === "exact"
+              ? "Matched from our database"
+              : `Similar analysis found (${Math.round((result._cache.similarity || 0) * 100)}% match)`}
+            {result._cache.ageHours !== undefined &&
+              ` · analyzed ${result._cache.ageHours < 24 ? `${result._cache.ageHours}h` : `${Math.round(result._cache.ageHours / 24)}d`} ago`}
+          </span>
+          <Database className="w-3.5 h-3.5 text-indigo-400 ml-auto" />
+        </div>
+      )}
 
       {/* Score Card */}
       <div
