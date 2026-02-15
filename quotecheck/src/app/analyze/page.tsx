@@ -219,11 +219,11 @@ export default function AnalyzePage() {
           category: CATEGORIES.find(c => c.value === category)?.label || category,
           vendor: businessName || 'Unknown Vendor',
           totalQuoted: result.totalQuoted,
-          fairMid: result.fairMid,
-          savings: result.savings,
-          score: result.score,
-          verdict: result.verdict,
-          items: result.items,
+          fairMid: (result.fairTotalLow + result.fairTotalHigh) / 2,
+          savings: result.potentialSavings,
+          score: result.overallScore,
+          verdict: result.overallVerdict,
+          items: result.lineItems,
         }),
       });
 
