@@ -3,6 +3,7 @@ import type { QuoteAnalysis, AnalyzeRequest, LineItemAnalysis } from "@/lib/type
 import { getRegionalFactor, matchService } from "@/lib/pricing-data";
 import { getAIAnalysis, mergeAIAnalysis } from "@/lib/ai-analysis";
 import { findCachedAnalysis, storeAnalysis } from "@/lib/db";
+import { runScamDetection } from "@/lib/protection-engine";
 
 function parseQuoteItems(text: string): { item: string; price: number }[] {
   const items: { item: string; price: number }[] = [];
@@ -338,9 +339,36 @@ export async function POST(request: NextRequest) {
     );
 
     // Step 3: Merge AI insights into the result, or return rule-based only
-    const finalAnalysis = aiResult
+    const mergedAnalysis = aiResult
       ? mergeAIAnalysis(ruleBasedAnalysis, aiResult)
       : ruleBasedAnalysis;
+
+    // Step 3.5: Run scam detection, hidden fee prediction, seasonal intelligence
+    const fairMid = (mergedAnalysis.fairTotalLow + mergedAnalysis.fairTotalHigh) / 2;
+    const protection = runScamDetection(
+      body.quoteText,
+      body.serviceCategory,
+      mergedAnalysis.totalQuoted,
+      fairMid
+    );
+
+    const finalAnalysis: QuoteAnalysis = {
+      ...mergedAnalysis,
+      protection: {
+        scamFlags: protection.flaggedPatterns.map((f) => ({
+          name: f.pattern.name,
+          description: f.pattern.description,
+          severity: f.pattern.severity,
+          matchedOn: f.matchedOn,
+          whatToDo: f.pattern.whatToDo,
+          realExample: f.pattern.realExample,
+        })),
+        hiddenFees: protection.hiddenFees,
+        seasonalTip: protection.seasonalTip,
+        smartQuestions: protection.smartQuestions,
+        riskLevel: protection.riskLevel,
+      },
+    };
 
     // Step 4: Store in database for future cache hits and community data
     try {
