@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { QuoteAnalysis, AnalyzeRequest, LineItemAnalysis } from "@/lib/types";
 import { getRegionalFactor, matchService } from "@/lib/pricing-data";
+import { getAIAnalysis, mergeAIAnalysis } from "@/lib/ai-analysis";
 
 function parseQuoteItems(text: string): { item: string; price: number }[] {
   const items: { item: string; price: number }[] = [];
@@ -272,10 +273,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    // Step 1: Run rule-based analysis (instant)
+    const ruleBasedAnalysis = analyzeQuote(body);
 
-    const analysis = analyzeQuote(body);
-    return NextResponse.json(analysis);
+    // Step 2: Enhance with Claude AI analysis (if API key available)
+    const aiResult = await getAIAnalysis(
+      body.quoteText,
+      body.serviceCategory,
+      body.zipCode,
+      ruleBasedAnalysis
+    );
+
+    // Step 3: Merge AI insights into the result, or return rule-based only
+    const finalAnalysis = aiResult
+      ? mergeAIAnalysis(ruleBasedAnalysis, aiResult)
+      : ruleBasedAnalysis;
+
+    return NextResponse.json(finalAnalysis);
   } catch {
     return NextResponse.json(
       { error: "Failed to analyze quote. Please try again." },

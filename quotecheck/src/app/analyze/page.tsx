@@ -19,6 +19,13 @@ import {
   ChevronUp,
   Camera,
   Type,
+  Sparkles,
+  Globe,
+  Eye,
+  MapPin,
+  ThumbsUp,
+  ThumbsDown,
+  Minus,
 } from "lucide-react";
 
 const CATEGORIES = [
@@ -452,6 +459,122 @@ function ResultsView({
         </div>
       )}
 
+      {/* AI Deep Analysis */}
+      {result.aiAnalysis?.poweredByAi && (
+        <>
+          {/* Detailed Explanation */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-blue-50">
+              <h3 className="font-semibold text-foreground flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-500" />
+                AI Deep Analysis
+                <span className="text-xs font-normal text-purple-500 bg-purple-100 px-2 py-0.5 rounded-full ml-1">
+                  Powered by Claude
+                </span>
+              </h3>
+            </div>
+            <div className="p-5">
+              <div className="prose prose-sm max-w-none text-sm text-foreground/80 leading-relaxed whitespace-pre-line">
+                {result.aiAnalysis.detailedExplanation}
+              </div>
+            </div>
+          </div>
+
+          {/* Score Justification + Regional Context */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <h3 className="font-semibold text-foreground flex items-center gap-2 mb-3 text-sm">
+                <Eye className="w-4 h-4 text-primary" />
+                Why This Score?
+              </h3>
+              <p className="text-sm text-muted leading-relaxed">
+                {result.aiAnalysis.scoreJustification}
+              </p>
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <h3 className="font-semibold text-foreground flex items-center gap-2 mb-3 text-sm">
+                <MapPin className="w-4 h-4 text-primary" />
+                Your Area
+              </h3>
+              <p className="text-sm text-muted leading-relaxed">
+                {result.aiAnalysis.regionalContext}
+              </p>
+            </div>
+          </div>
+
+          {/* Community Insights */}
+          {result.aiAnalysis.communityInsights.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="p-5 border-b border-gray-100">
+                <h3 className="font-semibold text-foreground flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-primary" />
+                  What People Are Saying Online
+                </h3>
+                <p className="text-xs text-muted mt-1">
+                  Community insights from Reddit, forums, and consumer sites
+                </p>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {result.aiAnalysis.communityInsights.map((insight, i) => (
+                  <div key={i} className="p-4 flex items-start gap-3">
+                    <div className="mt-0.5 shrink-0">
+                      {insight.sentiment === "price_too_high" ? (
+                        <ThumbsDown className="w-4 h-4 text-red-400" />
+                      ) : insight.sentiment === "supports_price" ? (
+                        <ThumbsUp className="w-4 h-4 text-green-400" />
+                      ) : (
+                        <Minus className="w-4 h-4 text-gray-400" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-primary mb-0.5">
+                        {insight.source}
+                      </p>
+                      <p className="text-sm text-muted leading-relaxed">
+                        &ldquo;{insight.snippet}&rdquo;
+                      </p>
+                    </div>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${
+                        insight.sentiment === "price_too_high"
+                          ? "bg-red-50 text-red-600"
+                          : insight.sentiment === "supports_price"
+                          ? "bg-green-50 text-green-600"
+                          : "bg-gray-50 text-gray-500"
+                      }`}
+                    >
+                      {insight.sentiment === "price_too_high"
+                        ? "Price is high"
+                        : insight.sentiment === "supports_price"
+                        ? "Supports price"
+                        : "Neutral"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Watch Out For */}
+          {result.aiAnalysis.watchOutFor.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+              <h3 className="font-semibold text-amber-800 flex items-center gap-2 mb-3">
+                <Eye className="w-5 h-5" />
+                Things to Watch Out For
+              </h3>
+              <ul className="space-y-2">
+                {result.aiAnalysis.watchOutFor.map((item, i) => (
+                  <li key={i} className="text-sm text-amber-700 flex items-start gap-2">
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
+      )}
+
       {/* Line Items */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-gray-100">
@@ -510,6 +633,14 @@ function ResultsView({
                 </span>
               </div>
               <p className="text-xs text-muted mt-1.5 ml-5">{item.notes}</p>
+              {item.aiExplanation && (
+                <div className="mt-2 ml-5 bg-purple-50 border border-purple-100 rounded-lg p-3">
+                  <p className="text-xs text-purple-800 leading-relaxed flex items-start gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 mt-0.5 shrink-0 text-purple-400" />
+                    {item.aiExplanation}
+                  </p>
+                </div>
+              )}
             </div>
           ))}
         </div>
