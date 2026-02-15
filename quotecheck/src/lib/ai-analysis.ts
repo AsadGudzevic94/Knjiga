@@ -6,7 +6,7 @@ import type { Tool, MessageParam, ContentBlock } from "@anthropic-ai/sdk/resourc
 
 // ── Tool definitions for the AI agent ───────────────────────
 
-const AGENT_TOOLS: Tool[] = [
+const AGENT_TOOLS: Array<Tool | any> = [
   {
     name: "read_page",
     description:
@@ -23,7 +23,7 @@ const AGENT_TOOLS: Tool[] = [
     },
   },
   {
-    type: "web_search_20250305" as any,
+    type: "web_search_20250305",
     name: "web_search",
     max_uses: 5,
   },
