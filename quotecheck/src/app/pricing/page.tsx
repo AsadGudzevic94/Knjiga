@@ -15,7 +15,7 @@ const PLANS = [
     period: "/mo",
     description: "For anyone who hates overpaying",
     features: [
-      "500 quote checks per month",
+      "100 quote checks per month",
       "Detailed line-item analysis",
       "Custom negotiation scripts",
       "Quote history & savings tracker",
@@ -291,7 +291,7 @@ function CheckoutModal({
         <div className="mb-6 space-y-2 text-sm">
           <div className="flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-accent" />
-            <span>500 quote checks per month</span>
+            <span>100 quote checks per month</span>
           </div>
           <div className="flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-accent" />
