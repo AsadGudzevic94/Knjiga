@@ -69,7 +69,7 @@ export default function Navbar() {
                         <p className="text-xs text-muted truncate">{user.email}</p>
                       </div>
                       <Link
-                        href="/dashboard"
+                        href="/settings"
                         className="flex items-center gap-2 px-4 py-2 text-sm text-muted hover:bg-gray-50 hover:text-foreground transition"
                         onClick={() => setUserMenuOpen(false)}
                       >
@@ -136,7 +136,7 @@ export default function Navbar() {
                   </p>
                 </div>
                 <Link
-                  href="/dashboard"
+                  href="/settings"
                   className="flex items-center gap-2 text-sm text-muted py-2"
                   onClick={() => setMobileOpen(false)}
                 >

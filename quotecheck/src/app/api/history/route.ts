@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { queryHistory, getStoredAnalysis } from "@/lib/db";
+import { queryHistory, getStoredAnalysis } from "@/lib/supabase-db";
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
 
   const id = params.get("id");
   if (id) {
-    const result = getStoredAnalysis(Number(id));
+    const result = await getStoredAnalysis(Number(id));
     if (!result) {
       return NextResponse.json({ error: "Analysis not found" }, { status: 404 });
     }
     return NextResponse.json(result);
   }
 
-  const results = queryHistory({
+  const results = await queryHistory({
     category: params.get("category") || undefined,
     zipCode: params.get("zip") || undefined,
     search: params.get("q") || undefined,

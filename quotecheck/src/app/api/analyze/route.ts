@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { QuoteAnalysis, AnalyzeRequest, LineItemAnalysis } from "@/lib/types";
 import { getRegionalFactor, matchService } from "@/lib/pricing-data";
 import { getAIAnalysis, mergeAIAnalysis } from "@/lib/ai-analysis";
-import { findCachedAnalysis, storeAnalysis } from "@/lib/db";
+import { findCachedAnalysis, storeAnalysis } from "@/lib/supabase-db";
 import { runScamDetection } from "@/lib/protection-engine";
 import { createClient } from '@supabase/supabase-js';
 
@@ -339,7 +339,7 @@ export async function POST(request: NextRequest) {
     const region = getRegionalFactor(body.zipCode);
 
     // Step 0: Check the cache for a similar previous analysis
-    const cached = findCachedAnalysis(
+    const cached = await findCachedAnalysis(
       body.quoteText,
       body.serviceCategory,
       body.zipCode
@@ -433,12 +433,13 @@ export async function POST(request: NextRequest) {
 
     // Step 4: Store in database for future cache hits and community data
     try {
-      const id = storeAnalysis(
+      const id = await storeAnalysis(
         body.quoteText,
         body.serviceCategory,
         body.zipCode,
         region.label,
-        finalAnalysis
+        finalAnalysis,
+        user.id
       );
       console.log(`[QuoteCheck] Stored analysis #${id}`);
     } catch (storeErr) {
