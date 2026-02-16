@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, Loader2, CheckCircle } from "lucide-react";
@@ -15,23 +15,47 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [ready, setReady] = useState(false);
+  const [expired, setExpired] = useState(false);
+  const readyRef = useRef(false);
 
   useEffect(() => {
-    // Listen for the PASSWORD_RECOVERY event when page loads with recovery token
+    function markReady() {
+      readyRef.current = true;
+      setReady(true);
+    }
+
+    // 1. Check URL hash for recovery tokens
+    // Supabase redirects with: /reset-password#access_token=xxx&type=recovery
+    const hash = window.location.hash;
+    if (hash && (hash.includes("type=recovery") || hash.includes("access_token"))) {
+      markReady();
+    }
+
+    // 2. Listen for PASSWORD_RECOVERY event
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
-        setReady(true);
+        markReady();
       }
     });
 
-    // Also check if we already have a session (user clicked link and session was set)
+    // 3. If we already have a session (token was processed), show the form
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        setReady(true);
+        markReady();
       }
     });
 
-    return () => subscription.unsubscribe();
+    // 4. If nothing works after 5s, link is expired/invalid
+    const timeout = setTimeout(() => {
+      if (!readyRef.current) {
+        setExpired(true);
+      }
+    }, 5000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   async function handleReset(e: React.FormEvent) {
@@ -58,6 +82,10 @@ export default function ResetPasswordPage() {
 
       setSuccess(true);
       setLoading(false);
+
+      // Sign out so user logs in fresh with new password
+      await supabase.auth.signOut();
+
       setTimeout(() => {
         router.push("/login");
       }, 2000);
@@ -83,7 +111,19 @@ export default function ResetPasswordPage() {
           </p>
         </div>
 
-        {!ready ? (
+        {expired ? (
+          <div className="text-center space-y-4">
+            <p className="text-sm text-red-500">
+              This reset link has expired or is invalid.
+            </p>
+            <Link
+              href="/forgot-password"
+              className="inline-block text-sm text-primary hover:underline"
+            >
+              Request a new reset link
+            </Link>
+          </div>
+        ) : !ready ? (
           <div className="text-center py-8">
             <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-3" />
             <p className="text-sm text-muted">Verifying your reset link...</p>
