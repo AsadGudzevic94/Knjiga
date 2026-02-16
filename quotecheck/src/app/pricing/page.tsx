@@ -5,6 +5,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { CheckCircle, ArrowRight, Zap, X, ShieldCheck } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 const PLANS = [
   {
@@ -230,9 +231,19 @@ function CheckoutModal({
     setError("");
 
     try {
+      const { data: session } = await supabase.auth.getSession();
+
+      if (!session.session) {
+        window.location.href = "/login?redirect=/pricing";
+        return;
+      }
+
       const response = await fetch("/api/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.session.access_token}`,
+        },
         body: JSON.stringify({ planId }),
       });
 
