@@ -22,9 +22,9 @@ export default function Footer() {
           <div>
             <h4 className="text-white font-semibold mb-4 text-sm">Product</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="#how-it-works" className="hover:text-white transition">How It Works</a></li>
-              <li><a href="#features" className="hover:text-white transition">Features</a></li>
-              <li><a href="#pricing" className="hover:text-white transition">Pricing</a></li>
+              <li><Link href="/#how-it-works" className="hover:text-white transition">How It Works</Link></li>
+              <li><Link href="/#features" className="hover:text-white transition">Features</Link></li>
+              <li><Link href="/pricing" className="hover:text-white transition">Pricing</Link></li>
               <li><Link href="/analyze" className="hover:text-white transition">Analyze a Quote</Link></li>
             </ul>
           </div>
@@ -32,10 +32,10 @@ export default function Footer() {
           <div>
             <h4 className="text-white font-semibold mb-4 text-sm">Categories</h4>
             <ul className="space-y-2 text-sm">
-              <li><span className="hover:text-white transition cursor-default">Auto Repair</span></li>
-              <li><span className="hover:text-white transition cursor-default">Home Services</span></li>
-              <li><span className="hover:text-white transition cursor-default">Medical & Dental</span></li>
-              <li><span className="hover:text-white transition cursor-default">Legal Fees</span></li>
+              <li><Link href="/analyze" className="hover:text-white transition">Auto Repair</Link></li>
+              <li><Link href="/analyze" className="hover:text-white transition">Home Services</Link></li>
+              <li><Link href="/analyze" className="hover:text-white transition">Medical & Dental</Link></li>
+              <li><Link href="/analyze" className="hover:text-white transition">Legal Fees</Link></li>
             </ul>
           </div>
         </div>

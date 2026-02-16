@@ -364,8 +364,57 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {/* Empty state - no quotes yet */}
+          {quotes.length === 0 && !loading && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-8 sm:p-12 mb-8 text-center">
+              <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                <FileText className="w-8 h-8 text-primary" />
+              </div>
+              <h2 className="text-xl font-bold text-foreground mb-2">
+                No quotes analyzed yet
+              </h2>
+              <p className="text-muted text-sm max-w-md mx-auto mb-6">
+                Upload your first service quote and our AI will tell you if the price is fair,
+                what you should be paying, and how to negotiate a better deal.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link
+                  href="/analyze"
+                  className="inline-flex items-center justify-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-dark transition"
+                >
+                  Analyze Your First Quote
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                {quotaInfo && !quotaInfo.quotesLimit && (
+                  <Link
+                    href="/pricing"
+                    className="inline-flex items-center justify-center gap-2 border-2 border-gray-200 px-6 py-3 rounded-xl font-semibold hover:border-primary hover:text-primary transition"
+                  >
+                    View Plans
+                  </Link>
+                )}
+              </div>
+
+              {/* Quick tips */}
+              <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left max-w-2xl mx-auto">
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-xs font-semibold text-foreground mb-1">Step 1</p>
+                  <p className="text-xs text-muted">Paste or type your quote details into the analyzer</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-xs font-semibold text-foreground mb-1">Step 2</p>
+                  <p className="text-xs text-muted">Our AI researches real-time pricing for your area</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-xs font-semibold text-foreground mb-1">Step 3</p>
+                  <p className="text-xs text-muted">Get a detailed report with fair prices and negotiation tips</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Stats cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className={`grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 ${quotes.length === 0 ? 'hidden' : ''}`}>
             <StatCard
               icon={<DollarSign className="w-5 h-5" />}
               label="Total Saved"
@@ -397,7 +446,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Charts row */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 ${quotes.length === 0 ? 'hidden' : ''}`}>
             {/* Cumulative savings */}
             <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-5">
               <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
@@ -469,7 +518,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Savings by category */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-8">
+          <div className={`bg-white rounded-2xl border border-gray-100 p-5 mb-8 ${quotes.length === 0 ? 'hidden' : ''}`}>
             <h3 className="font-semibold text-foreground mb-4">
               Savings by Category
             </h3>
@@ -487,7 +536,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Quote history table */}
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className={`bg-white rounded-2xl border border-gray-100 overflow-hidden ${quotes.length === 0 ? 'hidden' : ''}`}>
             <div className="p-5 border-b border-gray-100">
               <h3 className="font-semibold text-foreground">Quote History</h3>
             </div>
