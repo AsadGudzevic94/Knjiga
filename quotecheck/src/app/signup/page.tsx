@@ -204,14 +204,22 @@ export default function SignupPage() {
         </form>
 
         <p className="text-xs text-muted text-center mt-4">
-          By signing up, you agree to our Terms of Service and Privacy Policy.
+          By signing up, you agree to our{" "}
+          <Link href="/terms" className="text-primary hover:underline">Terms of Service</Link>
+          {" "}and{" "}
+          <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
         </p>
 
-        <div className="mt-4 text-center">
+        <div className="mt-4 text-center space-y-2">
           <p className="text-sm text-muted">
             Already have an account?{" "}
             <Link href="/login" className="text-primary font-medium hover:underline">
               Sign in
+            </Link>
+          </p>
+          <p>
+            <Link href="/" className="text-sm text-muted hover:text-foreground transition">
+              &larr; Back to home
             </Link>
           </p>
         </div>

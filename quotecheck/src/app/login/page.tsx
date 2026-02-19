@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ShieldCheck, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import PasswordInput from "@/components/PasswordInput";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,8 +33,8 @@ export default function LoginPage() {
         return;
       }
 
-      // Success - redirect to dashboard
-      router.push('/dashboard');
+      // Success - redirect to intended page or dashboard
+      router.push(redirect || '/dashboard');
       router.refresh();
     } catch (err) {
       setError('An error occurred. Please try again.');
@@ -105,15 +107,28 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-4 text-center">
+        <div className="mt-4 text-center space-y-2">
           <p className="text-sm text-muted">
             Don&apos;t have an account?{" "}
             <Link href="/signup" className="text-primary font-medium hover:underline">
               Sign up
             </Link>
           </p>
+          <p>
+            <Link href="/" className="text-sm text-muted hover:text-foreground transition">
+              &larr; Back to home
+            </Link>
+          </p>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
