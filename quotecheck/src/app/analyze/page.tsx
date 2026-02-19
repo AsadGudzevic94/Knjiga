@@ -1207,17 +1207,17 @@ function ResultsView({
       {/* CTA */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-6 text-center">
         <h3 className="text-white font-bold text-lg mb-2">
-          Want Unlimited Quote Checks?
+          Need More Quote Checks?
         </h3>
         <p className="text-blue-100 text-sm mb-4">
-          Upgrade to Pro for unlimited analyses, detailed reports, and custom
-          negotiation scripts.
+          Get 100 quote checks per month, detailed reports, and custom
+          negotiation scripts with a Pro plan.
         </p>
         <Link
-          href="/#pricing"
+          href="/pricing"
           className="inline-flex items-center gap-2 bg-white text-primary px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-50 transition"
         >
-          View Pro Plans
+          View Pricing
         </Link>
       </div>
     </div>

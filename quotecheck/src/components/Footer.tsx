@@ -5,7 +5,7 @@ export default function Footer() {
   return (
     <footer className="bg-gray-900 text-gray-400 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
           <div className="col-span-1 md:col-span-2">
             <Link href="/" className="flex items-center gap-2 mb-4">
               <ShieldCheck className="w-7 h-7 text-primary" />
@@ -36,6 +36,15 @@ export default function Footer() {
               <li><Link href="/analyze" className="hover:text-white transition">Home Services</Link></li>
               <li><Link href="/analyze" className="hover:text-white transition">Medical & Dental</Link></li>
               <li><Link href="/analyze" className="hover:text-white transition">Legal Fees</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-white font-semibold mb-4 text-sm">Legal</h4>
+            <ul className="space-y-2 text-sm">
+              <li><Link href="/privacy" className="hover:text-white transition">Privacy Policy</Link></li>
+              <li><Link href="/terms" className="hover:text-white transition">Terms of Service</Link></li>
+              <li><a href="mailto:support@quotecheck.chat" className="hover:text-white transition">Contact Support</a></li>
             </ul>
           </div>
         </div>

@@ -125,7 +125,7 @@ async function handleSubscriptionCreated(event: any) {
       user_id: userId,
       plan_type: planType,
       status: "active",
-      monthly_quote_limit: 500,
+      monthly_quote_limit: 100,
       lemon_squeezy_customer_id: attributes.customer_id,
       lemon_squeezy_subscription_id: subscription.id,
       current_period_start: new Date(attributes.renews_at),

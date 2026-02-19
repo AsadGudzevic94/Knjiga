@@ -282,8 +282,22 @@ export default function DashboardPage() {
     ].filter((d) => d.value > 0);
   }, [quotes]);
 
-  function removeQuote(id: string) {
-    setQuotes((prev) => prev.filter((q) => q.id !== id));
+  async function removeQuote(id: string) {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) return;
+
+      const res = await fetch(`/api/quotes/list?id=${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${session.session.access_token}` },
+      });
+
+      if (res.ok) {
+        setQuotes((prev) => prev.filter((q) => q.id !== id));
+      }
+    } catch (err) {
+      console.error("Failed to delete quote:", err);
+    }
   }
 
   if (authLoading || loading) {
