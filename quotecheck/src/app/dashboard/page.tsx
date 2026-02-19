@@ -170,7 +170,7 @@ export default function DashboardPage() {
   useEffect(() => {
     // Redirect if not logged in
     if (!authLoading && !user) {
-      router.push('/login');
+      router.replace('/login');
       return;
     }
 
@@ -181,7 +181,7 @@ export default function DashboardPage() {
       try {
         const { data: session } = await supabase.auth.getSession();
         if (!session.session) {
-          router.push('/login');
+          router.replace('/login');
           return;
         }
 

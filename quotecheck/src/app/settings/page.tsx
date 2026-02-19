@@ -77,7 +77,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push("/login?redirect=/settings");
+      router.replace("/login?redirect=/settings");
     }
   }, [user, authLoading, router]);
 

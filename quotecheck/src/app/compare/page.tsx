@@ -53,7 +53,7 @@ export default function ComparePage() {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push("/login?redirect=/compare");
+      router.replace("/login?redirect=/compare");
     }
   }, [user, authLoading, router]);
 
@@ -107,7 +107,7 @@ export default function ComparePage() {
 
     const { data: session } = await supabase.auth.getSession();
     if (!session.session) {
-      router.push("/login?redirect=/compare");
+      router.replace("/login?redirect=/compare");
       return;
     }
     const token = session.session.access_token;
