@@ -64,7 +64,8 @@ export async function storeAnalysis(
   zipCode: string,
   regionLabel: string,
   result: QuoteAnalysis,
-  userId?: string
+  userId?: string,
+  vendorName?: string
 ): Promise<number> {
   const keywords = extractKeywords(quoteText);
   const normalizedItems = result.lineItems
@@ -90,6 +91,7 @@ export async function storeAnalysis(
       normalized_items: normalizedItems,
       search_hash: searchHash,
       user_id: userId || null,
+      vendor_name: vendorName || null,
     })
     .select("id")
     .single();

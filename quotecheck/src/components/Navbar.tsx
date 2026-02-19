@@ -36,6 +36,9 @@ export default function Navbar() {
             <Link href="/prices" className="text-sm text-muted hover:text-foreground transition">
               Community Prices
             </Link>
+            <Link href="/trends" className="text-sm text-muted hover:text-foreground transition">
+              Trends
+            </Link>
             <Link href="/dashboard" className="text-sm text-muted hover:text-foreground transition">
               Dashboard
             </Link>
@@ -120,6 +123,9 @@ export default function Navbar() {
             </Link>
             <Link href="/prices" className="text-sm text-muted py-2" onClick={() => setMobileOpen(false)}>
               Community Prices
+            </Link>
+            <Link href="/trends" className="text-sm text-muted py-2" onClick={() => setMobileOpen(false)}>
+              Trends
             </Link>
             <Link href="/dashboard" className="text-sm text-muted py-2" onClick={() => setMobileOpen(false)}>
               Dashboard

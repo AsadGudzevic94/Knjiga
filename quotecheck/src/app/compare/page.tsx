@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 import type { QuoteAnalysis } from "@/lib/types";
 import {
   ArrowLeft,
@@ -45,6 +48,15 @@ const CATEGORIES = [
 let nextId = 3;
 
 export default function ComparePage() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login?redirect=/compare");
+    }
+  }, [user, authLoading, router]);
+
   const [slots, setSlots] = useState<QuoteSlot[]>([
     createSlot(1, "Quote A"),
     createSlot(2, "Quote B"),
@@ -93,6 +105,13 @@ export default function ComparePage() {
     }));
     setSlots(newSlots);
 
+    const { data: session } = await supabase.auth.getSession();
+    if (!session.session) {
+      router.push("/login?redirect=/compare");
+      return;
+    }
+    const token = session.session.access_token;
+
     const results = await Promise.all(
       newSlots.map(async (slot) => {
         if (!slot.quoteText.trim()) {
@@ -101,7 +120,10 @@ export default function ComparePage() {
         try {
           const res = await fetch("/api/analyze", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`,
+            },
             body: JSON.stringify({
               quoteText: slot.quoteText,
               serviceCategory: sharedCategory,

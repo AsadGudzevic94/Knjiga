@@ -16,8 +16,34 @@ import {
   BadgeCheck,
   XCircle,
   Info,
+  Users,
+  BarChart3,
+  TrendingDown,
 } from "lucide-react";
 import Link from "next/link";
+
+interface ContractorReport {
+  found: boolean;
+  name: string;
+  report?: {
+    totalAnalyses: number;
+    avgScore: number;
+    avgQuoted: number;
+    avgSavings: number;
+    overpricedPct: number;
+    categories: string[];
+  };
+  recentAnalyses?: {
+    id: number;
+    date: string;
+    category: string;
+    score: number;
+    totalQuoted: number;
+    fairRange: string;
+    savings: number;
+    verdict: string;
+  }[];
+}
 
 interface ReviewSource {
   platform: string;
@@ -87,29 +113,66 @@ export default function ReputationPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<ReputationResult | null>(null);
+  const [activeTab, setActiveTab] = useState<"ai" | "community">("ai");
+  const [communityData, setCommunityData] = useState<ContractorReport | null>(null);
+  const [communityLoading, setCommunityLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
     setResult(null);
+    setCommunityData(null);
+
+    // Fetch both AI reputation and community data in parallel
+    const aiPromise = fetch("/api/reputation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ businessName, location, category }),
+    });
+
+    const communityPromise = fetch(
+      `/api/contractor-report?name=${encodeURIComponent(businessName)}${
+        location ? `&zip=${encodeURIComponent(location)}` : ""
+      }`
+    );
 
     try {
-      const res = await fetch("/api/reputation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessName, location, category }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Something went wrong.");
-        return;
+      const [aiRes, commRes] = await Promise.all([aiPromise, communityPromise]);
+
+      const aiData = await aiRes.json();
+      if (aiRes.ok) {
+        setResult(aiData);
+      } else {
+        setError(aiData.error || "Something went wrong.");
       }
-      setResult(data);
+
+      const commData = await commRes.json();
+      if (commRes.ok) {
+        setCommunityData(commData);
+      }
     } catch {
       setError("Network error. Please try again.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchCommunityOnly() {
+    if (!businessName.trim()) return;
+    setCommunityLoading(true);
+    try {
+      const res = await fetch(
+        `/api/contractor-report?name=${encodeURIComponent(businessName)}${
+          location ? `&zip=${encodeURIComponent(location)}` : ""
+        }`
+      );
+      const data = await res.json();
+      if (res.ok) setCommunityData(data);
+    } catch {
+      // ignore
+    } finally {
+      setCommunityLoading(false);
     }
   }
 
@@ -215,8 +278,185 @@ export default function ReputationPage() {
             </button>
           </form>
 
+          {/* Tab Switcher */}
+          {(result || communityData) && (
+            <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6">
+              <button
+                onClick={() => setActiveTab("ai")}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition ${
+                  activeTab === "ai"
+                    ? "bg-white text-foreground shadow-sm"
+                    : "text-muted hover:text-foreground"
+                }`}
+              >
+                <Shield className="w-4 h-4" />
+                AI Reputation
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("community");
+                  if (!communityData && businessName) fetchCommunityOnly();
+                }}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition ${
+                  activeTab === "community"
+                    ? "bg-white text-foreground shadow-sm"
+                    : "text-muted hover:text-foreground"
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                Community Data
+                {communityData?.found && communityData.report && (
+                  <span className="bg-primary/10 text-primary text-xs px-1.5 py-0.5 rounded-full">
+                    {communityData.report.totalAnalyses}
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Community Data Tab */}
+          {activeTab === "community" && (result || communityData) && (
+            <div className="animate-fade-in space-y-6 mb-8">
+              {communityLoading ? (
+                <div className="bg-white rounded-2xl border border-gray-100 p-12 flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  <span className="ml-3 text-sm text-muted">Loading community data...</span>
+                </div>
+              ) : !communityData?.found ? (
+                <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+                  <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <h3 className="text-lg font-semibold text-foreground mb-1">
+                    No community data yet
+                  </h3>
+                  <p className="text-sm text-muted">
+                    No quotes from &ldquo;{communityData?.name || businessName}&rdquo; have been analyzed by our community yet.
+                    Be the first to{" "}
+                    <Link href="/analyze" className="text-primary hover:underline">
+                      analyze a quote
+                    </Link>{" "}
+                    from this contractor.
+                  </p>
+                </div>
+              ) : communityData.report && (
+                <>
+                  {/* Report Card */}
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                    <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5 text-primary" />
+                      Community Report Card: {communityData.name}
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div className="text-center p-3 bg-gray-50 rounded-xl">
+                        <p className="text-2xl font-bold text-foreground">
+                          {communityData.report.totalAnalyses}
+                        </p>
+                        <p className="text-xs text-muted">Quotes Analyzed</p>
+                      </div>
+                      <div className="text-center p-3 bg-gray-50 rounded-xl">
+                        <p className={`text-2xl font-bold ${
+                          communityData.report.avgScore >= 7
+                            ? "text-green-500"
+                            : communityData.report.avgScore >= 4
+                            ? "text-yellow-500"
+                            : "text-red-500"
+                        }`}>
+                          {communityData.report.avgScore}/10
+                        </p>
+                        <p className="text-xs text-muted">Avg Score</p>
+                      </div>
+                      <div className="text-center p-3 bg-gray-50 rounded-xl">
+                        <p className="text-2xl font-bold text-foreground">
+                          ${communityData.report.avgQuoted.toLocaleString()}
+                        </p>
+                        <p className="text-xs text-muted">Avg Quote</p>
+                      </div>
+                      <div className="text-center p-3 bg-gray-50 rounded-xl">
+                        <p className={`text-2xl font-bold ${
+                          communityData.report.overpricedPct > 50
+                            ? "text-red-500"
+                            : communityData.report.overpricedPct > 25
+                            ? "text-yellow-500"
+                            : "text-green-500"
+                        }`}>
+                          {communityData.report.overpricedPct}%
+                        </p>
+                        <p className="text-xs text-muted">Overpriced Rate</p>
+                      </div>
+                    </div>
+
+                    {communityData.report.avgSavings > 0 && (
+                      <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2">
+                        <TrendingDown className="w-4 h-4 text-green-600 shrink-0" />
+                        <p className="text-sm text-green-700">
+                          On average, users could save <strong>${communityData.report.avgSavings.toLocaleString()}</strong> by negotiating with this contractor.
+                        </p>
+                      </div>
+                    )}
+
+                    {communityData.report.categories.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-xs text-muted mb-2">Services analyzed:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {communityData.report.categories.map((cat) => (
+                            <span
+                              key={cat}
+                              className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full"
+                            >
+                              {cat.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Recent Analyses */}
+                  {communityData.recentAnalyses && communityData.recentAnalyses.length > 0 && (
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                      <div className="p-5 border-b border-gray-100">
+                        <h3 className="font-semibold text-foreground">
+                          Recent Quotes Analyzed
+                        </h3>
+                      </div>
+                      <div className="divide-y divide-gray-50">
+                        {communityData.recentAnalyses.map((a) => (
+                          <div key={a.id} className="p-4 flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-foreground">
+                                {a.category.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                              </p>
+                              <p className="text-xs text-muted">
+                                {new Date(a.date).toLocaleDateString()} &middot; {a.fairRange}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <span
+                                className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-white text-sm font-bold ${
+                                  a.score >= 7
+                                    ? "bg-green-500"
+                                    : a.score >= 4
+                                    ? "bg-yellow-500"
+                                    : "bg-red-500"
+                                }`}
+                              >
+                                {a.score}
+                              </span>
+                              <p className="text-xs text-muted mt-1">
+                                ${a.totalQuoted.toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
           {/* Results */}
-          {result && (
+          {activeTab === "ai" && result && (
             <div className="animate-fade-in space-y-6">
               {/* Overall Rating */}
               <div className={`rounded-2xl border p-6 ${ratingBg(result.overallRating)}`}>

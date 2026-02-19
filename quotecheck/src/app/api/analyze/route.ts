@@ -439,7 +439,8 @@ export async function POST(request: NextRequest) {
         body.zipCode,
         region.label,
         finalAnalysis,
-        user.id
+        user.id,
+        body.businessName || undefined
       );
       console.log(`[QuoteCheck] Stored analysis #${id}`);
     } catch (storeErr) {
