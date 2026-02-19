@@ -96,7 +96,7 @@ export default function SignupPage() {
         <form onSubmit={handleSignup} className="space-y-4">
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 block">
-              Full name
+              Full name <span className="text-red-400">*</span>
             </label>
             <input
               type="text"
@@ -110,7 +110,7 @@ export default function SignupPage() {
 
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 block">
-              Email
+              Email <span className="text-red-400">*</span>
             </label>
             <input
               type="email"
@@ -124,7 +124,7 @@ export default function SignupPage() {
 
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 block">
-              Password
+              Password <span className="text-red-400">*</span>
             </label>
             <PasswordInput
               value={password}
@@ -137,7 +137,7 @@ export default function SignupPage() {
 
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 block">
-              City
+              City <span className="text-muted text-xs font-normal">(optional)</span>
             </label>
             <input
               type="text"
@@ -151,7 +151,7 @@ export default function SignupPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">
-                State
+                State <span className="text-muted text-xs font-normal">(opt.)</span>
               </label>
               <select
                 value={state}
@@ -165,7 +165,7 @@ export default function SignupPage() {
             </div>
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">
-                Zip Code
+                Zip <span className="text-muted text-xs font-normal">(opt.)</span>
               </label>
               <input
                 type="text"
