@@ -4,6 +4,7 @@ export const metadata: Metadata = {
   title: "Business Reputation Check",
   description:
     "Look up any contractor or business reputation. Our AI searches reviews, BBB complaints, license records, and community data to give you the full picture.",
+  alternates: { canonical: "/reputation" },
   openGraph: {
     title: "Business Reputation Check | QuoteCheck",
     description:

@@ -31,6 +31,14 @@ export const metadata: Metadata = {
     siteName: "QuoteCheck",
     type: "website",
     locale: "en_US",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "QuoteCheck - AI-Powered Quote Analysis",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
@@ -43,7 +51,7 @@ export const metadata: Metadata = {
     follow: true,
   },
   alternates: {
-    canonical: "https://www.quotecheck.chat",
+    canonical: "/",
   },
 };
 

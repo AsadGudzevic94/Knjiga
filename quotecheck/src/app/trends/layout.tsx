@@ -4,6 +4,7 @@ export const metadata: Metadata = {
   title: "Market Price Trends",
   description:
     "See how service prices are trending in your area. Track price movements for auto repair, plumbing, HVAC, dental, and more based on real community data.",
+  alternates: { canonical: "/trends" },
   openGraph: {
     title: "Market Price Trends | QuoteCheck",
     description:
