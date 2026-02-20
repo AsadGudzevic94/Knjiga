@@ -134,14 +134,45 @@ export async function POST(request: NextRequest) {
       emailData.subject?.toLowerCase().includes("verification");
 
     if (isVerification) {
-      // Extract confirmation code from the email body or subject
+      // If no body yet, try fetching from Resend with a small delay (email may still be processing)
+      if (!emailBody && emailData.email_id) {
+        try {
+          const resendKey = process.env.RESEND_API_KEY;
+          if (resendKey) {
+            // Small delay to allow Resend to process the email
+            await new Promise((r) => setTimeout(r, 2000));
+            const emailRes = await fetch(
+              `https://api.resend.com/emails/receiving/${emailData.email_id}`,
+              { headers: { Authorization: `Bearer ${resendKey}` } }
+            );
+            if (emailRes.ok) {
+              const fullEmail = await emailRes.json();
+              emailBody = fullEmail.text || fullEmail.html || "";
+              console.log("[Inbound] Verification email body fetched, length:", emailBody.length);
+            }
+          }
+        } catch (err) {
+          console.error("[Inbound] Failed to fetch verification email body:", err);
+        }
+      }
+
       const codeText = emailBody || emailData.subject || "";
-      // Gmail uses a numeric code like "Confirmation code: 123456789"
-      const codeMatch = codeText.match(/(?:confirmation\s*code|verification\s*code)[:\s]*(\d{5,12})/i)
-        || codeText.match(/(\d{9})/); // Gmail codes are typically 9 digits
+      console.log("[Inbound] Verification text to search (first 500 chars):", codeText.slice(0, 500));
+
+      // Try multiple patterns:
+      // 1. "Confirmation code: 12345678" or "verification code: 12345678"
+      // 2. Gmail subject format "(#12345678)"
+      // 3. HTML: code in a link like "confirm=12345678" or "#12345678"
+      // 4. Any standalone 7-10 digit number (Gmail codes are typically 8-9 digits)
+      const codeMatch =
+        codeText.match(/(?:confirmation|verification)\s*code[:\s]*#?(\d{5,12})/i) ||
+        codeText.match(/\(#(\d{5,12})\)/) ||
+        codeText.match(/confirm[=\/](\d{5,12})/) ||
+        codeText.match(/[\s>](\d{7,10})[\s<]/);
 
       const code = codeMatch ? codeMatch[1] : null;
 
+      // Store the raw email body too so we can debug if code extraction fails
       await supabase
         .from("email_automation_settings")
         .update({
@@ -151,7 +182,20 @@ export async function POST(request: NextRequest) {
         })
         .eq("forwarding_address", hash);
 
-      console.log(`[Inbound] Verification email from ${fromEmail}, code: ${code || "not extracted"}`);
+      // Also store as a skipped email analysis so user can see the raw content
+      if (!code) {
+        await supabase.from("email_analyses").insert({
+          user_id: settings.user_id,
+          from_email: fromEmail,
+          from_name: fromName,
+          subject: emailData.subject || "(No subject)",
+          email_body: codeText.slice(0, 10000),
+          analysis_status: "skipped",
+          error_message: "Gmail verification email — check body for confirmation code",
+        });
+      }
+
+      console.log(`[Inbound] Verification email from ${fromEmail}, code: ${code || "not extracted"}, body length: ${codeText.length}`);
       return NextResponse.json({ received: true });
     }
 

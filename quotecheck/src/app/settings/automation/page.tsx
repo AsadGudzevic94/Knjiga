@@ -341,7 +341,7 @@ export default function AutomationSettingsPage() {
             )}
 
             {/* Gmail verification code */}
-            {settings.verificationCode && (
+            {settings.verificationCode ? (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                 <p className="text-sm font-semibold text-amber-900 mb-1">
                   Gmail Verification Code
@@ -371,7 +371,23 @@ export default function AutomationSettingsPage() {
                   </p>
                 )}
               </div>
-            )}
+            ) : settings.verificationReceivedAt ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <p className="text-sm font-semibold text-amber-900 mb-1">
+                  Verification Email Received
+                </p>
+                <p className="text-xs text-amber-700">
+                  We received Gmail&apos;s verification email but couldn&apos;t extract the code automatically.
+                  Check your <a href="/dashboard?tab=emails" className="underline font-medium">Email Analyses</a> tab
+                  for the raw email content — the confirmation code should be visible there.
+                </p>
+                {settings.verificationReceivedAt && (
+                  <p className="text-xs text-amber-600 mt-2">
+                    Received {new Date(settings.verificationReceivedAt).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            ) : null}
           </div>
         </section>
 
