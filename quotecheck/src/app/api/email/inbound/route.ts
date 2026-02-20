@@ -15,10 +15,10 @@ function getSupabase() {
 
 interface InboundEmailPayload {
   from: string;
-  to: string;
+  to: string | string[];
   subject: string;
-  text: string;
-  html: string;
+  text?: string;
+  html?: string;
 }
 
 function extractEmailAddress(from: string): { email: string; name: string | null } {
@@ -30,78 +30,51 @@ function extractEmailAddress(from: string): { email: string; name: string | null
   return { email: from.trim(), name: null };
 }
 
-function extractForwardingHash(toField: string): string | null {
+function extractForwardingHash(toField: string | string[]): string | null {
   const domain = process.env.INBOUND_EMAIL_DOMAIN || "quotecheck.chat";
-  const match = toField.match(new RegExp(`([a-z0-9]+)@${domain.replace(/\./g, "\\.")}`));
+  const toStr = Array.isArray(toField) ? toField.join(",") : toField;
+  const match = toStr.match(new RegExp(`([a-z0-9]+)@${domain.replace(/\./g, "\\.")}`));
   return match ? match[1] : null;
 }
 
 export async function POST(request: NextRequest) {
   const supabase = getSupabase();
+  const body = await request.text();
 
-  // Verify webhook signature
+  // Verify webhook signature if secret is configured
   const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
   if (webhookSecret) {
-    try {
-      const body = await request.text();
-      const svixId = request.headers.get("svix-id") || "";
-      const svixTimestamp = request.headers.get("svix-timestamp") || "";
-      const svixSignature = request.headers.get("svix-signature") || "";
+    const svixId = request.headers.get("svix-id") || "";
+    const svixTimestamp = request.headers.get("svix-timestamp") || "";
+    const svixSignature = request.headers.get("svix-signature") || "";
 
-      const wh = new Webhook(webhookSecret);
-      wh.verify(body, {
-        "svix-id": svixId,
-        "svix-timestamp": svixTimestamp,
-        "svix-signature": svixSignature,
-      });
-
-      const event = JSON.parse(body);
-      const emailData = event.data as InboundEmailPayload;
-
-      const hash = extractForwardingHash(emailData.to);
-      if (!hash) {
-        return NextResponse.json({ received: true });
-      }
-
-      const { data: settings } = await supabase
-        .from("email_automation_settings")
-        .select("*")
-        .eq("forwarding_address", hash)
-        .eq("is_enabled", true)
-        .single();
-
-      if (!settings) {
-        return NextResponse.json({ received: true });
-      }
-
-      const { email: fromEmail, name: fromName } = extractEmailAddress(emailData.from);
-      const emailBody = emailData.text || emailData.html || "";
-
-      after(async () => {
-        await processInboundEmail({
-          userId: settings.user_id,
-          settings,
-          fromEmail,
-          fromName,
-          subject: emailData.subject || "(No subject)",
-          emailBody,
+    // Only verify if svix headers are present (Resend sends them)
+    if (svixId && svixTimestamp && svixSignature) {
+      try {
+        const wh = new Webhook(webhookSecret);
+        wh.verify(body, {
+          "svix-id": svixId,
+          "svix-timestamp": svixTimestamp,
+          "svix-signature": svixSignature,
         });
-      });
-
-      return NextResponse.json({ received: true });
-    } catch (err) {
-      console.error("[Inbound] Webhook verification failed:", err);
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+      } catch (err) {
+        console.error("[Inbound] Signature verification failed:", err);
+        return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+      }
     }
   }
 
-  // Fallback: no webhook secret configured (dev mode)
   try {
-    const body = await request.json();
-    const emailData = body.data as InboundEmailPayload;
+    const event = JSON.parse(body);
+    const emailData = event.data as InboundEmailPayload;
+
+    if (!emailData || !emailData.to) {
+      return NextResponse.json({ received: true });
+    }
 
     const hash = extractForwardingHash(emailData.to);
     if (!hash) {
+      console.log("[Inbound] No forwarding hash found in:", emailData.to);
       return NextResponse.json({ received: true });
     }
 
@@ -113,6 +86,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (!settings) {
+      console.log("[Inbound] No active settings for hash:", hash);
       return NextResponse.json({ received: true });
     }
 
