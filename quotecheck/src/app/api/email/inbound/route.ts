@@ -19,6 +19,7 @@ interface InboundEmailPayload {
   subject: string;
   text?: string;
   html?: string;
+  email_id?: string;
 }
 
 function extractEmailAddress(from: string): { email: string; name: string | null } {
@@ -91,7 +92,31 @@ export async function POST(request: NextRequest) {
     }
 
     const { email: fromEmail, name: fromName } = extractEmailAddress(emailData.from);
-    const emailBody = emailData.text || emailData.html || "";
+
+    // Fetch full email content from Resend API if body not in webhook
+    let emailBody = emailData.text || emailData.html || "";
+    if (!emailBody && emailData.email_id) {
+      try {
+        const resendKey = process.env.RESEND_API_KEY;
+        if (resendKey) {
+          const emailRes = await fetch(
+            `https://api.resend.com/emails/${emailData.email_id}`,
+            { headers: { Authorization: `Bearer ${resendKey}` } }
+          );
+          if (emailRes.ok) {
+            const fullEmail = await emailRes.json();
+            emailBody = fullEmail.text || fullEmail.html || "";
+          }
+        }
+      } catch (fetchErr) {
+        console.error("[Inbound] Failed to fetch email body:", fetchErr);
+      }
+    }
+
+    // If still no body, use subject as fallback
+    if (!emailBody) {
+      emailBody = emailData.subject || "";
+    }
 
     after(async () => {
       await processInboundEmail({
