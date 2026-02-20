@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Menu, X, ShieldCheck, User, LogOut, Settings } from "lucide-react";
+import { Menu, X, ShieldCheck, User, LogOut, Settings, Zap } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function Navbar() {
@@ -79,6 +79,14 @@ export default function Navbar() {
                         <Settings className="w-4 h-4" />
                         Settings
                       </Link>
+                      <Link
+                        href="/settings/automation"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-muted hover:bg-gray-50 hover:text-foreground transition"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <Zap className="w-4 h-4" />
+                        Automation
+                      </Link>
                       <button
                         onClick={handleSignOut}
                         className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
@@ -148,6 +156,14 @@ export default function Navbar() {
                 >
                   <Settings className="w-4 h-4" />
                   Settings
+                </Link>
+                <Link
+                  href="/settings/automation"
+                  className="flex items-center gap-2 text-sm text-muted py-2"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <Zap className="w-4 h-4" />
+                  Automation
                 </Link>
                 <button
                   onClick={() => {

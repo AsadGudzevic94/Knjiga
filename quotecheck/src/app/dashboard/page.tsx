@@ -31,7 +31,29 @@ import {
   DollarSign,
   Target,
   Activity,
+  Mail,
+  Loader2,
+  Copy,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  MessageSquare,
 } from "lucide-react";
+import type { QuoteAnalysis } from "@/lib/types";
+
+interface EmailAnalysis {
+  id: string;
+  from_email: string;
+  from_name: string | null;
+  subject: string;
+  received_at: string;
+  analysis_status: "pending" | "processing" | "completed" | "failed" | "skipped";
+  detected_category: string | null;
+  detected_vendor: string | null;
+  analysis_result: QuoteAnalysis | null;
+  draft_reply: string | null;
+  error_message: string | null;
+}
 
 interface SavedQuote {
   id: string;
@@ -161,6 +183,12 @@ export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const [quotes, setQuotes] = useState<SavedQuote[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"quotes" | "emails">("quotes");
+  const [emailAnalyses, setEmailAnalyses] = useState<EmailAnalysis[]>([]);
+  const [emailsLoading, setEmailsLoading] = useState(false);
+  const [expandedEmail, setExpandedEmail] = useState<string | null>(null);
+  const [generatingReply, setGeneratingReply] = useState<string | null>(null);
+  const [copiedReply, setCopiedReply] = useState<string | null>(null);
   const [quotaInfo, setQuotaInfo] = useState<{
     quotesUsed: number;
     quotesLimit: number;
@@ -228,6 +256,80 @@ export default function DashboardPage() {
       fetchQuotes();
     }
   }, [user, authLoading, router]);
+
+  // Check URL for tab param
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("tab") === "emails") {
+      setActiveTab("emails");
+    }
+  }, []);
+
+  // Fetch email analyses when tab switches
+  useEffect(() => {
+    if (activeTab === "emails" && user && emailAnalyses.length === 0) {
+      fetchEmailAnalyses();
+    }
+  }, [activeTab, user]);
+
+  async function fetchEmailAnalyses() {
+    setEmailsLoading(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) return;
+
+      const res = await fetch("/api/email/analyses", {
+        headers: {
+          Authorization: `Bearer ${session.session.access_token}`,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setEmailAnalyses(data.analyses || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch email analyses:", err);
+    } finally {
+      setEmailsLoading(false);
+    }
+  }
+
+  async function generateReply(emailId: string) {
+    setGeneratingReply(emailId);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) return;
+
+      const res = await fetch("/api/email/reply", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.session.access_token}`,
+        },
+        body: JSON.stringify({ emailAnalysisId: emailId }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setEmailAnalyses((prev) =>
+          prev.map((ea) =>
+            ea.id === emailId ? { ...ea, draft_reply: data.reply } : ea
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Failed to generate reply:", err);
+    } finally {
+      setGeneratingReply(null);
+    }
+  }
+
+  function copyReply(emailId: string, text: string) {
+    navigator.clipboard.writeText(text);
+    setCopiedReply(emailId);
+    setTimeout(() => setCopiedReply(null), 2000);
+  }
 
   const stats = useMemo(() => {
     const totalSaved = quotes.reduce((s, q) => s + q.savings, 0);
@@ -378,8 +480,317 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Empty state - no quotes yet */}
-          {quotes.length === 0 && !loading && (
+          {/* Tab switcher */}
+          <div className="flex gap-1 bg-gray-100 rounded-lg p-1 mb-6">
+            <button
+              onClick={() => setActiveTab("quotes")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition ${
+                activeTab === "quotes"
+                  ? "bg-white shadow-sm text-foreground"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              Quote History
+            </button>
+            <button
+              onClick={() => setActiveTab("emails")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition ${
+                activeTab === "emails"
+                  ? "bg-white shadow-sm text-foreground"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              <Mail className="w-4 h-4" />
+              Email Analyses
+            </button>
+          </div>
+
+          {/* Email Analyses Tab */}
+          {activeTab === "emails" && (
+            <div className="space-y-4">
+              {emailsLoading ? (
+                <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" />
+                  <p className="text-sm text-muted mt-2">Loading email analyses...</p>
+                </div>
+              ) : emailAnalyses.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-gray-100 p-8 sm:p-12 text-center">
+                  <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                    <Mail className="w-8 h-8 text-primary" />
+                  </div>
+                  <h2 className="text-xl font-bold text-foreground mb-2">
+                    No email analyses yet
+                  </h2>
+                  <p className="text-muted text-sm max-w-md mx-auto mb-6">
+                    Set up email automation to forward quotes and get instant AI analysis.
+                  </p>
+                  <Link
+                    href="/settings/automation"
+                    className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-dark transition"
+                  >
+                    Set Up Email Automation
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                  <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+                    <h3 className="font-semibold text-foreground">Email Analyses</h3>
+                    <button
+                      onClick={fetchEmailAnalyses}
+                      className="text-xs text-primary hover:text-primary-dark transition"
+                    >
+                      Refresh
+                    </button>
+                  </div>
+                  <div className="divide-y divide-gray-50">
+                    {emailAnalyses.map((ea) => (
+                      <div key={ea.id}>
+                        <button
+                          onClick={() =>
+                            setExpandedEmail(
+                              expandedEmail === ea.id ? null : ea.id
+                            )
+                          }
+                          className="w-full px-5 py-4 hover:bg-gray-50 transition text-left"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div
+                                className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                  ea.analysis_status === "completed"
+                                    ? "bg-green-500"
+                                    : ea.analysis_status === "processing"
+                                    ? "bg-yellow-500 animate-pulse"
+                                    : ea.analysis_status === "skipped"
+                                    ? "bg-gray-400"
+                                    : ea.analysis_status === "failed"
+                                    ? "bg-red-500"
+                                    : "bg-gray-300"
+                                }`}
+                              />
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-foreground truncate">
+                                  {ea.from_name || ea.from_email}
+                                </p>
+                                <p className="text-xs text-muted truncate">
+                                  {ea.subject}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4 flex-shrink-0 ml-4">
+                              {ea.analysis_result && (
+                                <div className="text-right hidden sm:block">
+                                  <span
+                                    className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white"
+                                    style={{
+                                      backgroundColor:
+                                        SCORE_COLORS[
+                                          ea.analysis_result
+                                            .overallVerdict as keyof typeof SCORE_COLORS
+                                        ] || "#6b7280",
+                                    }}
+                                  >
+                                    {ea.analysis_result.overallScore}
+                                  </span>
+                                </div>
+                              )}
+                              {ea.detected_category && (
+                                <span className="text-xs text-muted hidden sm:block">
+                                  {ea.detected_category.replace(/_/g, " ")}
+                                </span>
+                              )}
+                              <span className="text-xs text-muted">
+                                {new Date(ea.received_at).toLocaleDateString(
+                                  "en-US",
+                                  { month: "short", day: "numeric" }
+                                )}
+                              </span>
+                              {expandedEmail === ea.id ? (
+                                <ChevronUp className="w-4 h-4 text-muted" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4 text-muted" />
+                              )}
+                            </div>
+                          </div>
+                        </button>
+
+                        {/* Expanded view */}
+                        {expandedEmail === ea.id && (
+                          <div className="px-5 pb-5 border-t border-gray-50">
+                            {ea.analysis_status === "completed" &&
+                            ea.analysis_result ? (
+                              <div className="space-y-4 pt-4">
+                                {/* Score summary */}
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                  <div className="bg-gray-50 rounded-lg p-3">
+                                    <p className="text-xs text-muted">Score</p>
+                                    <p className="text-lg font-bold">
+                                      {ea.analysis_result.overallScore}/10
+                                    </p>
+                                  </div>
+                                  <div className="bg-gray-50 rounded-lg p-3">
+                                    <p className="text-xs text-muted">Quoted</p>
+                                    <p className="text-lg font-bold">
+                                      $
+                                      {ea.analysis_result.totalQuoted.toLocaleString()}
+                                    </p>
+                                  </div>
+                                  <div className="bg-gray-50 rounded-lg p-3">
+                                    <p className="text-xs text-muted">
+                                      Fair Range
+                                    </p>
+                                    <p className="text-lg font-bold">
+                                      $
+                                      {ea.analysis_result.fairTotalLow.toLocaleString()}
+                                      -$
+                                      {ea.analysis_result.fairTotalHigh.toLocaleString()}
+                                    </p>
+                                  </div>
+                                  <div className="bg-gray-50 rounded-lg p-3">
+                                    <p className="text-xs text-muted">
+                                      Potential Savings
+                                    </p>
+                                    <p className="text-lg font-bold text-green-600">
+                                      $
+                                      {ea.analysis_result.potentialSavings.toLocaleString()}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {/* Line items */}
+                                {ea.analysis_result.lineItems.length > 0 && (
+                                  <div>
+                                    <p className="text-sm font-medium text-foreground mb-2">
+                                      Line Items
+                                    </p>
+                                    <div className="space-y-1">
+                                      {ea.analysis_result.lineItems.map(
+                                        (li, idx) => (
+                                          <div
+                                            key={idx}
+                                            className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
+                                              li.status === "overpriced"
+                                                ? "bg-red-50"
+                                                : li.status === "slightly_high"
+                                                ? "bg-yellow-50"
+                                                : "bg-green-50"
+                                            }`}
+                                          >
+                                            <span className="text-foreground">
+                                              {li.item}
+                                            </span>
+                                            <div className="flex items-center gap-3">
+                                              <span className="font-medium">
+                                                $
+                                                {li.quotedPrice.toLocaleString()}
+                                              </span>
+                                              <span
+                                                className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                                                  li.status === "overpriced"
+                                                    ? "bg-red-100 text-red-700"
+                                                    : li.status ===
+                                                      "slightly_high"
+                                                    ? "bg-yellow-100 text-yellow-700"
+                                                    : "bg-green-100 text-green-700"
+                                                }`}
+                                              >
+                                                {li.status
+                                                  .replace(/_/g, " ")
+                                                  .replace(/\b\w/g, (c) =>
+                                                    c.toUpperCase()
+                                                  )}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        )
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Draft reply section */}
+                                <div className="border-t border-gray-100 pt-4">
+                                  {ea.draft_reply ? (
+                                    <div>
+                                      <div className="flex items-center justify-between mb-2">
+                                        <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                                          <MessageSquare className="w-4 h-4 text-primary" />
+                                          Draft Reply
+                                        </p>
+                                        <button
+                                          onClick={() =>
+                                            copyReply(ea.id, ea.draft_reply!)
+                                          }
+                                          className="flex items-center gap-1 text-xs text-primary hover:text-primary-dark transition"
+                                        >
+                                          {copiedReply === ea.id ? (
+                                            <>
+                                              <Check className="w-3 h-3" />{" "}
+                                              Copied
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Copy className="w-3 h-3" /> Copy
+                                            </>
+                                          )}
+                                        </button>
+                                      </div>
+                                      <div className="bg-gray-50 rounded-xl p-4 text-sm text-muted whitespace-pre-wrap">
+                                        {ea.draft_reply}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => generateReply(ea.id)}
+                                      disabled={generatingReply === ea.id}
+                                      className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary-dark transition disabled:opacity-60"
+                                    >
+                                      {generatingReply === ea.id ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        <MessageSquare className="w-4 h-4" />
+                                      )}
+                                      {generatingReply === ea.id
+                                        ? "Generating reply..."
+                                        : "Generate Reply"}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ) : ea.analysis_status === "skipped" ? (
+                              <p className="text-sm text-muted pt-4">
+                                Skipped: {ea.error_message || "Not a quote email"}
+                              </p>
+                            ) : ea.analysis_status === "failed" ? (
+                              <p className="text-sm text-red-600 pt-4">
+                                Failed: {ea.error_message || "Analysis error"}
+                              </p>
+                            ) : ea.analysis_status === "processing" ? (
+                              <div className="flex items-center gap-2 pt-4">
+                                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                                <p className="text-sm text-muted">
+                                  Analysis in progress...
+                                </p>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-muted pt-4">
+                                Pending analysis
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Quotes Tab Content */}
+          {activeTab === "quotes" && quotes.length === 0 && !loading && (
             <div className="bg-white rounded-2xl border border-gray-100 p-8 sm:p-12 mb-8 text-center">
               <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
                 <FileText className="w-8 h-8 text-primary" />
@@ -428,7 +839,7 @@ export default function DashboardPage() {
           )}
 
           {/* Stats cards */}
-          <div className={`grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 ${quotes.length === 0 ? 'hidden' : ''}`}>
+          <div className={`grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 ${quotes.length === 0 || activeTab !== 'quotes' ? 'hidden' : ''}`}>
             <StatCard
               icon={<DollarSign className="w-5 h-5" />}
               label="Total Saved"
@@ -460,7 +871,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Charts row */}
-          <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 ${quotes.length === 0 ? 'hidden' : ''}`}>
+          <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 ${quotes.length === 0 || activeTab !== 'quotes' ? 'hidden' : ''}`}>
             {/* Cumulative savings */}
             <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-5">
               <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
@@ -532,7 +943,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Savings by category */}
-          <div className={`bg-white rounded-2xl border border-gray-100 p-5 mb-8 ${quotes.length === 0 ? 'hidden' : ''}`}>
+          <div className={`bg-white rounded-2xl border border-gray-100 p-5 mb-8 ${quotes.length === 0 || activeTab !== 'quotes' ? 'hidden' : ''}`}>
             <h3 className="font-semibold text-foreground mb-4">
               Savings by Category
             </h3>
@@ -550,7 +961,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Quote history table */}
-          <div className={`bg-white rounded-2xl border border-gray-100 overflow-hidden ${quotes.length === 0 ? 'hidden' : ''}`}>
+          <div className={`bg-white rounded-2xl border border-gray-100 overflow-hidden ${quotes.length === 0 || activeTab !== 'quotes' ? 'hidden' : ''}`}>
             <div className="p-5 border-b border-gray-100">
               <h3 className="font-semibold text-foreground">Quote History</h3>
             </div>
