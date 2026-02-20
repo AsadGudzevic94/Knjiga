@@ -38,6 +38,8 @@ import {
   ChevronDown,
   ChevronUp,
   MessageSquare,
+  RefreshCw,
+  Pencil,
 } from "lucide-react";
 import type { QuoteAnalysis } from "@/lib/types";
 
@@ -189,6 +191,9 @@ export default function DashboardPage() {
   const [expandedEmail, setExpandedEmail] = useState<string | null>(null);
   const [generatingReply, setGeneratingReply] = useState<string | null>(null);
   const [copiedReply, setCopiedReply] = useState<string | null>(null);
+  const [editingReply, setEditingReply] = useState<string | null>(null);
+  const [editedReplyText, setEditedReplyText] = useState<string>("");
+  const [deletingEmail, setDeletingEmail] = useState<string | null>(null);
   const [quotaInfo, setQuotaInfo] = useState<{
     quotesUsed: number;
     quotesLimit: number;
@@ -329,6 +334,44 @@ export default function DashboardPage() {
     navigator.clipboard.writeText(text);
     setCopiedReply(emailId);
     setTimeout(() => setCopiedReply(null), 2000);
+  }
+
+  async function deleteEmailAnalysis(emailId: string) {
+    setDeletingEmail(emailId);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) return;
+
+      const res = await fetch(`/api/email/analyses?id=${emailId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${session.session.access_token}`,
+        },
+      });
+
+      if (res.ok) {
+        setEmailAnalyses((prev) => prev.filter((ea) => ea.id !== emailId));
+        if (expandedEmail === emailId) setExpandedEmail(null);
+      }
+    } catch (err) {
+      console.error("Failed to delete email analysis:", err);
+    } finally {
+      setDeletingEmail(null);
+    }
+  }
+
+  function startEditReply(emailId: string, currentText: string) {
+    setEditingReply(emailId);
+    setEditedReplyText(currentText);
+  }
+
+  function saveEditedReply(emailId: string) {
+    setEmailAnalyses((prev) =>
+      prev.map((ea) =>
+        ea.id === emailId ? { ...ea, draft_reply: editedReplyText } : ea
+      )
+    );
+    setEditingReply(null);
   }
 
   const stats = useMemo(() => {
@@ -719,27 +762,64 @@ export default function DashboardPage() {
                                           <MessageSquare className="w-4 h-4 text-primary" />
                                           Draft Reply
                                         </p>
-                                        <button
-                                          onClick={() =>
-                                            copyReply(ea.id, ea.draft_reply!)
-                                          }
-                                          className="flex items-center gap-1 text-xs text-primary hover:text-primary-dark transition"
-                                        >
-                                          {copiedReply === ea.id ? (
-                                            <>
-                                              <Check className="w-3 h-3" />{" "}
-                                              Copied
-                                            </>
+                                        <div className="flex items-center gap-2">
+                                          {editingReply === ea.id ? (
+                                            <button
+                                              onClick={() => saveEditedReply(ea.id)}
+                                              className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 transition font-medium"
+                                            >
+                                              <Check className="w-3 h-3" /> Save
+                                            </button>
                                           ) : (
-                                            <>
-                                              <Copy className="w-3 h-3" /> Copy
-                                            </>
+                                            <button
+                                              onClick={() => startEditReply(ea.id, ea.draft_reply!)}
+                                              className="flex items-center gap-1 text-xs text-muted hover:text-foreground transition"
+                                            >
+                                              <Pencil className="w-3 h-3" /> Edit
+                                            </button>
                                           )}
-                                        </button>
+                                          <button
+                                            onClick={() =>
+                                              copyReply(ea.id, ea.draft_reply!)
+                                            }
+                                            className="flex items-center gap-1 text-xs text-primary hover:text-primary-dark transition"
+                                          >
+                                            {copiedReply === ea.id ? (
+                                              <>
+                                                <Check className="w-3 h-3" /> Copied
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Copy className="w-3 h-3" /> Copy
+                                              </>
+                                            )}
+                                          </button>
+                                          <button
+                                            onClick={() => generateReply(ea.id)}
+                                            disabled={generatingReply === ea.id}
+                                            className="flex items-center gap-1 text-xs text-muted hover:text-foreground transition disabled:opacity-60"
+                                          >
+                                            {generatingReply === ea.id ? (
+                                              <Loader2 className="w-3 h-3 animate-spin" />
+                                            ) : (
+                                              <RefreshCw className="w-3 h-3" />
+                                            )}
+                                            Regenerate
+                                          </button>
+                                        </div>
                                       </div>
-                                      <div className="bg-gray-50 rounded-xl p-4 text-sm text-muted whitespace-pre-wrap">
-                                        {ea.draft_reply}
-                                      </div>
+                                      {editingReply === ea.id ? (
+                                        <textarea
+                                          value={editedReplyText}
+                                          onChange={(e) => setEditedReplyText(e.target.value)}
+                                          rows={8}
+                                          className="w-full bg-white border border-gray-200 rounded-xl p-4 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                                        />
+                                      ) : (
+                                        <div className="bg-gray-50 rounded-xl p-4 text-sm text-muted whitespace-pre-wrap">
+                                          {ea.draft_reply}
+                                        </div>
+                                      )}
                                     </div>
                                   ) : (
                                     <button
@@ -758,15 +838,78 @@ export default function DashboardPage() {
                                     </button>
                                   )}
                                 </div>
+
+                                {/* Delete button */}
+                                <div className="border-t border-gray-100 pt-3 flex justify-end">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (confirm("Delete this email analysis?")) {
+                                        deleteEmailAnalysis(ea.id);
+                                      }
+                                    }}
+                                    disabled={deletingEmail === ea.id}
+                                    className="flex items-center gap-1.5 text-xs text-muted hover:text-red-500 transition disabled:opacity-60"
+                                  >
+                                    {deletingEmail === ea.id ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="w-3 h-3" />
+                                    )}
+                                    Delete
+                                  </button>
+                                </div>
                               </div>
                             ) : ea.analysis_status === "skipped" ? (
-                              <p className="text-sm text-muted pt-4">
-                                Skipped: {ea.error_message || "Not a quote email"}
-                              </p>
+                              <div className="pt-4 space-y-3">
+                                <p className="text-sm text-muted">
+                                  Skipped: {ea.error_message || "Not a quote email"}
+                                </p>
+                                <div className="flex justify-end">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (confirm("Delete this email analysis?")) {
+                                        deleteEmailAnalysis(ea.id);
+                                      }
+                                    }}
+                                    disabled={deletingEmail === ea.id}
+                                    className="flex items-center gap-1.5 text-xs text-muted hover:text-red-500 transition disabled:opacity-60"
+                                  >
+                                    {deletingEmail === ea.id ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="w-3 h-3" />
+                                    )}
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
                             ) : ea.analysis_status === "failed" ? (
-                              <p className="text-sm text-red-600 pt-4">
-                                Failed: {ea.error_message || "Analysis error"}
-                              </p>
+                              <div className="pt-4 space-y-3">
+                                <p className="text-sm text-red-600">
+                                  Failed: {ea.error_message || "Analysis error"}
+                                </p>
+                                <div className="flex justify-end">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (confirm("Delete this email analysis?")) {
+                                        deleteEmailAnalysis(ea.id);
+                                      }
+                                    }}
+                                    disabled={deletingEmail === ea.id}
+                                    className="flex items-center gap-1.5 text-xs text-muted hover:text-red-500 transition disabled:opacity-60"
+                                  >
+                                    {deletingEmail === ea.id ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="w-3 h-3" />
+                                    )}
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
                             ) : ea.analysis_status === "processing" ? (
                               <div className="flex items-center gap-2 pt-4">
                                 <Loader2 className="w-4 h-4 animate-spin text-primary" />

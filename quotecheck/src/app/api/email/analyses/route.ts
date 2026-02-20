@@ -61,3 +61,43 @@ export async function GET(request: NextRequest) {
     offset,
   });
 }
+
+export async function DELETE(request: NextRequest) {
+  const token = getToken(request);
+  if (!token) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser(token);
+
+  if (authError || !user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
+
+  if (!id) {
+    return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  }
+
+  const { error } = await supabase
+    .from("email_analyses")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) {
+    console.error("[EmailAnalyses] Delete error:", error);
+    return NextResponse.json(
+      { error: "Failed to delete" },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({ success: true });
+}
