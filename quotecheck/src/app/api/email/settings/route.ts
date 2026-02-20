@@ -67,6 +67,8 @@ export async function GET(request: NextRequest) {
     replyTemplate: settings.reply_template || "",
     forwardingEmail: `${settings.forwarding_address}@${domain}`,
     isSetUp: true,
+    verificationCode: settings.verification_code || null,
+    verificationReceivedAt: settings.verification_received_at || null,
   });
 }
 

@@ -122,6 +122,39 @@ export async function POST(request: NextRequest) {
       emailBody = emailData.subject || "";
     }
 
+    // Check if this is a Gmail/Outlook forwarding verification email
+    const verificationSenders = [
+      "forwarding-noreply@google.com",
+      "no-reply@microsoft.com",
+      "postmaster@outlook.com",
+    ];
+    const isVerification = verificationSenders.some(
+      (s) => fromEmail.toLowerCase() === s
+    ) || emailData.subject?.toLowerCase().includes("forwarding confirmation") ||
+      emailData.subject?.toLowerCase().includes("verification");
+
+    if (isVerification) {
+      // Extract confirmation code from the email body or subject
+      const codeText = emailBody || emailData.subject || "";
+      // Gmail uses a numeric code like "Confirmation code: 123456789"
+      const codeMatch = codeText.match(/(?:confirmation\s*code|verification\s*code)[:\s]*(\d{5,12})/i)
+        || codeText.match(/(\d{9})/); // Gmail codes are typically 9 digits
+
+      const code = codeMatch ? codeMatch[1] : null;
+
+      await supabase
+        .from("email_automation_settings")
+        .update({
+          verification_code: code,
+          verification_email_from: fromEmail,
+          verification_received_at: new Date().toISOString(),
+        })
+        .eq("forwarding_address", hash);
+
+      console.log(`[Inbound] Verification email from ${fromEmail}, code: ${code || "not extracted"}`);
+      return NextResponse.json({ received: true });
+    }
+
     after(async () => {
       await processInboundEmail({
         userId: settings.user_id,

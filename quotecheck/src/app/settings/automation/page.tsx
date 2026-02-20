@@ -45,6 +45,8 @@ interface AutomationSettings {
   replyTemplate: string;
   forwardingEmail: string | null;
   isSetUp: boolean;
+  verificationCode: string | null;
+  verificationReceivedAt: string | null;
 }
 
 const DEFAULT_SETTINGS: AutomationSettings = {
@@ -58,6 +60,8 @@ const DEFAULT_SETTINGS: AutomationSettings = {
   replyTemplate: "",
   forwardingEmail: null,
   isSetUp: false,
+  verificationCode: null,
+  verificationReceivedAt: null,
 };
 
 export default function AutomationSettingsPage() {
@@ -286,38 +290,86 @@ export default function AutomationSettingsPage() {
               <div className="bg-gray-50 rounded-xl p-4 space-y-4 text-sm text-muted">
                 <div>
                   <p className="font-semibold text-foreground mb-1">Gmail:</p>
-                  <ol className="list-decimal ml-4 space-y-1">
+                  <ol className="list-decimal ml-4 space-y-1.5">
                     <li>
-                      Go to Settings &rarr; Forwarding and POP/IMAP
+                      Go to Gmail <strong>Settings</strong> &rarr; <strong>Forwarding and POP/IMAP</strong>
                     </li>
                     <li>
-                      Click &quot;Add a forwarding address&quot; and enter your
-                      QuoteCheck email
+                      Click <strong>&quot;Add a forwarding address&quot;</strong> and paste your QuoteCheck email above
                     </li>
-                    <li>Create a filter for emails containing quotes/invoices</li>
-                    <li>Set the filter to forward matching emails</li>
+                    <li>
+                      Gmail will send a verification email &mdash; the confirmation code will appear below automatically
+                    </li>
+                    <li>
+                      Enter the code in Gmail to confirm the forwarding address
+                    </li>
+                    <li>
+                      Go to <strong>Settings</strong> &rarr; <strong>Filters and Blocked Addresses</strong> &rarr; <strong>Create a new filter</strong>
+                    </li>
+                    <li>
+                      In <strong>&quot;Has the words&quot;</strong> field, enter: <code className="bg-gray-200 px-1.5 py-0.5 rounded text-xs">quote OR estimate OR invoice</code>
+                    </li>
+                    <li>
+                      Click <strong>&quot;Create filter&quot;</strong>, check <strong>&quot;Forward it to&quot;</strong> your QuoteCheck address, and save
+                    </li>
                   </ol>
                 </div>
                 <div>
                   <p className="font-semibold text-foreground mb-1">
                     Outlook:
                   </p>
-                  <ol className="list-decimal ml-4 space-y-1">
-                    <li>Go to Settings &rarr; Mail &rarr; Rules</li>
-                    <li>Create a new rule for emails with keywords like &quot;quote&quot;, &quot;estimate&quot;, &quot;invoice&quot;</li>
-                    <li>Set the action to forward to your QuoteCheck email</li>
+                  <ol className="list-decimal ml-4 space-y-1.5">
+                    <li>Go to <strong>Settings</strong> &rarr; <strong>Mail</strong> &rarr; <strong>Rules</strong></li>
+                    <li>Click <strong>&quot;Add new rule&quot;</strong></li>
+                    <li>Set condition: subject or body contains &quot;quote&quot;, &quot;estimate&quot;, or &quot;invoice&quot;</li>
+                    <li>Set action: <strong>Forward to</strong> your QuoteCheck email</li>
+                    <li>Save the rule</li>
                   </ol>
                 </div>
                 <div>
                   <p className="font-semibold text-foreground mb-1">
                     Apple Mail:
                   </p>
-                  <ol className="list-decimal ml-4 space-y-1">
-                    <li>Go to Mail &rarr; Preferences &rarr; Rules</li>
-                    <li>Add a rule for messages containing &quot;quote&quot; or &quot;invoice&quot;</li>
-                    <li>Set action to redirect to your QuoteCheck email</li>
+                  <ol className="list-decimal ml-4 space-y-1.5">
+                    <li>Go to <strong>Mail</strong> &rarr; <strong>Settings</strong> &rarr; <strong>Rules</strong></li>
+                    <li>Click <strong>&quot;Add Rule&quot;</strong></li>
+                    <li>Set condition: subject or body contains &quot;quote&quot; or &quot;invoice&quot;</li>
+                    <li>Set action: <strong>Redirect Message</strong> to your QuoteCheck email</li>
                   </ol>
                 </div>
+              </div>
+            )}
+
+            {/* Gmail verification code */}
+            {settings.verificationCode && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <p className="text-sm font-semibold text-amber-900 mb-1">
+                  Gmail Verification Code
+                </p>
+                <p className="text-xs text-amber-700 mb-3">
+                  Gmail sent a confirmation email. Enter this code in Gmail to verify the forwarding address.
+                </p>
+                <div className="flex items-center gap-2">
+                  <code className="bg-white border border-amber-300 rounded-lg px-4 py-2 text-lg font-bold font-mono text-amber-900 tracking-widest">
+                    {settings.verificationCode}
+                  </code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(settings.verificationCode!);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                    className="flex items-center gap-1 px-3 py-2 border border-amber-300 rounded-lg text-xs font-medium text-amber-800 hover:bg-amber-100 transition"
+                  >
+                    {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    {copied ? "Copied" : "Copy"}
+                  </button>
+                </div>
+                {settings.verificationReceivedAt && (
+                  <p className="text-xs text-amber-600 mt-2">
+                    Received {new Date(settings.verificationReceivedAt).toLocaleString()}
+                  </p>
+                )}
               </div>
             )}
           </div>
