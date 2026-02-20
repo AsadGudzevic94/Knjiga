@@ -288,6 +288,12 @@ export default function AutomationSettingsPage() {
 
             {showInstructions && (
               <div className="bg-gray-50 rounded-xl p-4 space-y-4 text-sm text-muted">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
+                  <p className="text-xs text-blue-800">
+                    <strong>AI-powered filtering:</strong> You can forward all your emails &mdash; our AI automatically
+                    detects quotes, estimates, and invoices. Non-quote emails are skipped at no cost.
+                  </p>
+                </div>
                 <div>
                   <p className="font-semibold text-foreground mb-1">Gmail:</p>
                   <ol className="list-decimal ml-4 space-y-1.5">
@@ -298,32 +304,28 @@ export default function AutomationSettingsPage() {
                       Click <strong>&quot;Add a forwarding address&quot;</strong> and paste your QuoteCheck email above
                     </li>
                     <li>
-                      Gmail will send a verification email &mdash; the confirmation code will appear below automatically
+                      Gmail will send a verification code to your phone or email &mdash; confirm it
                     </li>
                     <li>
-                      Enter the code in Gmail to confirm the forwarding address
+                      Select <strong>&quot;Forward a copy of incoming mail to&quot;</strong> your QuoteCheck address
                     </li>
                     <li>
-                      Go to <strong>Settings</strong> &rarr; <strong>Filters and Blocked Addresses</strong> &rarr; <strong>Create a new filter</strong>
-                    </li>
-                    <li>
-                      In <strong>&quot;Has the words&quot;</strong> field, enter: <code className="bg-gray-200 px-1.5 py-0.5 rounded text-xs">quote OR estimate OR invoice</code>
-                    </li>
-                    <li>
-                      Click <strong>&quot;Create filter&quot;</strong>, check <strong>&quot;Forward it to&quot;</strong> your QuoteCheck address, and save
+                      Choose <strong>&quot;keep Gmail&apos;s copy in the Inbox&quot;</strong> and save
                     </li>
                   </ol>
+                  <p className="text-xs text-muted mt-2 italic">
+                    That&apos;s it! Our AI will automatically detect and analyze any quotes or invoices.
+                  </p>
                 </div>
                 <div>
                   <p className="font-semibold text-foreground mb-1">
                     Outlook:
                   </p>
                   <ol className="list-decimal ml-4 space-y-1.5">
-                    <li>Go to <strong>Settings</strong> &rarr; <strong>Mail</strong> &rarr; <strong>Rules</strong></li>
-                    <li>Click <strong>&quot;Add new rule&quot;</strong></li>
-                    <li>Set condition: subject or body contains &quot;quote&quot;, &quot;estimate&quot;, or &quot;invoice&quot;</li>
-                    <li>Set action: <strong>Forward to</strong> your QuoteCheck email</li>
-                    <li>Save the rule</li>
+                    <li>Go to <strong>Settings</strong> &rarr; <strong>Mail</strong> &rarr; <strong>Forwarding</strong></li>
+                    <li>Check <strong>&quot;Enable forwarding&quot;</strong></li>
+                    <li>Enter your QuoteCheck email address</li>
+                    <li>Check <strong>&quot;Keep a copy of forwarded messages&quot;</strong> and save</li>
                   </ol>
                 </div>
                 <div>
@@ -333,9 +335,18 @@ export default function AutomationSettingsPage() {
                   <ol className="list-decimal ml-4 space-y-1.5">
                     <li>Go to <strong>Mail</strong> &rarr; <strong>Settings</strong> &rarr; <strong>Rules</strong></li>
                     <li>Click <strong>&quot;Add Rule&quot;</strong></li>
-                    <li>Set condition: subject or body contains &quot;quote&quot; or &quot;invoice&quot;</li>
+                    <li>Set condition: <strong>&quot;Every message&quot;</strong></li>
                     <li>Set action: <strong>Redirect Message</strong> to your QuoteCheck email</li>
                   </ol>
+                </div>
+                <div className="border-t border-gray-200 pt-3 mt-2">
+                  <p className="font-semibold text-foreground mb-1">
+                    Or forward specific senders only:
+                  </p>
+                  <p className="text-xs">
+                    If you prefer, create a filter in your email app to only forward emails from specific contractors
+                    or containing keywords like &quot;quote&quot;, &quot;estimate&quot;, or &quot;invoice&quot;.
+                  </p>
                 </div>
               </div>
             )}
