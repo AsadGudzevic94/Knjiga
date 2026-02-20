@@ -93,19 +93,23 @@ export async function POST(request: NextRequest) {
 
     const { email: fromEmail, name: fromName } = extractEmailAddress(emailData.from);
 
-    // Fetch full email content from Resend API if body not in webhook
+    // Fetch full email content from Resend Received Emails API
+    // Inbound webhooks only include metadata, not body — must fetch separately
     let emailBody = emailData.text || emailData.html || "";
     if (!emailBody && emailData.email_id) {
       try {
         const resendKey = process.env.RESEND_API_KEY;
         if (resendKey) {
           const emailRes = await fetch(
-            `https://api.resend.com/emails/${emailData.email_id}`,
+            `https://api.resend.com/emails/receiving/${emailData.email_id}`,
             { headers: { Authorization: `Bearer ${resendKey}` } }
           );
           if (emailRes.ok) {
             const fullEmail = await emailRes.json();
+            console.log("[Inbound] Fetched email body, has text:", !!fullEmail.text, "has html:", !!fullEmail.html);
             emailBody = fullEmail.text || fullEmail.html || "";
+          } else {
+            console.error("[Inbound] Failed to fetch email body, status:", emailRes.status);
           }
         }
       } catch (fetchErr) {
