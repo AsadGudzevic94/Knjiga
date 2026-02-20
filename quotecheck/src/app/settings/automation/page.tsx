@@ -114,7 +114,11 @@ export default function AutomationSettingsPage() {
 
     try {
       const { data: session } = await supabase.auth.getSession();
-      if (!session.session) return;
+      if (!session.session) {
+        setMsg("Session expired. Please log in again.");
+        setMsgType("error");
+        return;
+      }
 
       const res = await fetch("/api/email/settings", {
         method: "PUT",
@@ -135,15 +139,17 @@ export default function AutomationSettingsPage() {
         setMsg("Settings saved successfully!");
         setMsgType("success");
       } else {
-        setMsg("Failed to save settings.");
+        const errData = await res.json().catch(() => ({}));
+        setMsg(errData.error || "Failed to save settings.");
         setMsgType("error");
       }
-    } catch {
+    } catch (err) {
+      console.error("Save error:", err);
       setMsg("Failed to save settings.");
       setMsgType("error");
     } finally {
       setSaving(false);
-      setTimeout(() => setMsg(""), 3000);
+      setTimeout(() => setMsg(""), 5000);
     }
   }
 
