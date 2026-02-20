@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     .eq("user_id", user.id)
     .single();
 
-  const domain = process.env.INBOUND_EMAIL_DOMAIN || "inbox.quotecheck.chat";
+  const domain = process.env.INBOUND_EMAIL_DOMAIN || "quotecheck.chat";
 
   if (!settings) {
     return NextResponse.json({
@@ -89,7 +89,7 @@ export async function PUT(request: NextRequest) {
   const body = await request.json();
 
   const forwardingAddress = generateForwardingAddress(user.id);
-  const domain = process.env.INBOUND_EMAIL_DOMAIN || "inbox.quotecheck.chat";
+  const domain = process.env.INBOUND_EMAIL_DOMAIN || "quotecheck.chat";
 
   const { error } = await supabase.from("email_automation_settings").upsert(
     {

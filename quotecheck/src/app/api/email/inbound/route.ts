@@ -31,7 +31,7 @@ function extractEmailAddress(from: string): { email: string; name: string | null
 }
 
 function extractForwardingHash(toField: string): string | null {
-  const domain = process.env.INBOUND_EMAIL_DOMAIN || "inbox.quotecheck.chat";
+  const domain = process.env.INBOUND_EMAIL_DOMAIN || "quotecheck.chat";
   const match = toField.match(new RegExp(`([a-z0-9]+)@${domain.replace(/\./g, "\\.")}`));
   return match ? match[1] : null;
 }
