@@ -2,9 +2,45 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Menu, X, ShieldCheck, User, LogOut, Settings, Zap } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+
+function NavLink({ href, children, onClick }: { href: string; children: React.ReactNode; onClick?: () => void }) {
+  const pathname = usePathname();
+  const isActive = pathname === href || pathname.startsWith(href + "/");
+  return (
+    <Link
+      href={href}
+      className={`text-sm cursor-pointer transition ${
+        isActive
+          ? "text-primary font-semibold"
+          : "text-muted hover:text-foreground"
+      }`}
+      onClick={onClick}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function MobileNavLink({ href, children, onClick }: { href: string; children: React.ReactNode; onClick?: () => void }) {
+  const pathname = usePathname();
+  const isActive = pathname === href || pathname.startsWith(href + "/");
+  return (
+    <Link
+      href={href}
+      className={`text-sm py-2.5 px-3 rounded-lg cursor-pointer transition ${
+        isActive
+          ? "text-primary font-semibold bg-blue-50"
+          : "text-muted hover:text-foreground hover:bg-gray-50"
+      }`}
+      onClick={onClick}
+    >
+      {children}
+    </Link>
+  );
+}
 
 export default function Navbar() {
   const router = useRouter();
@@ -30,21 +66,11 @@ export default function Navbar() {
           </Link>
 
           <div className="hidden md:flex items-center gap-6">
-            <Link href="/compare" className="text-sm text-muted hover:text-foreground transition">
-              Compare
-            </Link>
-            <Link href="/prices" className="text-sm text-muted hover:text-foreground transition">
-              Community Prices
-            </Link>
-            <Link href="/trends" className="text-sm text-muted hover:text-foreground transition">
-              Trends
-            </Link>
-            <Link href="/dashboard" className="text-sm text-muted hover:text-foreground transition">
-              Dashboard
-            </Link>
-            <Link href="/pricing" className="text-sm text-muted hover:text-foreground transition">
-              Pricing
-            </Link>
+            <NavLink href="/compare">Compare</NavLink>
+            <NavLink href="/prices">Community Prices</NavLink>
+            <NavLink href="/trends">Trends</NavLink>
+            <NavLink href="/dashboard">Dashboard</NavLink>
+            <NavLink href="/pricing">Pricing</NavLink>
 
             {user ? (
               <div className="relative">
@@ -125,22 +151,12 @@ export default function Navbar() {
 
       {mobileOpen && (
         <div className="md:hidden bg-white border-b border-gray-100 px-4 pb-4">
-          <div className="flex flex-col gap-3">
-            <Link href="/compare" className="text-sm text-muted py-2" onClick={() => setMobileOpen(false)}>
-              Compare Quotes
-            </Link>
-            <Link href="/prices" className="text-sm text-muted py-2" onClick={() => setMobileOpen(false)}>
-              Community Prices
-            </Link>
-            <Link href="/trends" className="text-sm text-muted py-2" onClick={() => setMobileOpen(false)}>
-              Trends
-            </Link>
-            <Link href="/dashboard" className="text-sm text-muted py-2" onClick={() => setMobileOpen(false)}>
-              Dashboard
-            </Link>
-            <Link href="/pricing" className="text-sm text-muted py-2" onClick={() => setMobileOpen(false)}>
-              Pricing
-            </Link>
+          <div className="flex flex-col gap-1">
+            <MobileNavLink href="/compare" onClick={() => setMobileOpen(false)}>Compare Quotes</MobileNavLink>
+            <MobileNavLink href="/prices" onClick={() => setMobileOpen(false)}>Community Prices</MobileNavLink>
+            <MobileNavLink href="/trends" onClick={() => setMobileOpen(false)}>Trends</MobileNavLink>
+            <MobileNavLink href="/dashboard" onClick={() => setMobileOpen(false)}>Dashboard</MobileNavLink>
+            <MobileNavLink href="/pricing" onClick={() => setMobileOpen(false)}>Pricing</MobileNavLink>
 
             {user ? (
               <>

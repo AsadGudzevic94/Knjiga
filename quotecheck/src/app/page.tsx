@@ -79,50 +79,137 @@ export default function LandingPage() {
       <Navbar />
 
       {/* Hero */}
-      <section className="pt-28 pb-20 px-4 bg-gradient-to-b from-blue-50 to-white">
-        <div className="max-w-5xl mx-auto text-center animate-fade-in">
-          <div className="inline-flex items-center gap-2 bg-blue-100 text-primary px-4 py-1.5 rounded-full text-sm font-medium mb-6">
-            <Zap className="w-4 h-4" />
-            Americans overpay $1,200/year on service quotes
+      <section className="pt-28 pb-20 px-4 bg-gradient-to-b from-blue-50 to-white overflow-hidden">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Left: Text */}
+            <div className="text-center lg:text-left animate-fade-in">
+              <div className="inline-flex items-center gap-2 bg-blue-100 text-primary px-4 py-1.5 rounded-full text-sm font-medium mb-6">
+                <Zap className="w-4 h-4" />
+                Americans overpay $1,200/year on service quotes
+              </div>
+
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight mb-6">
+                Is This Price{" "}
+                <span className="text-primary relative">
+                  Fair?
+                  <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 200 12" fill="none">
+                    <path d="M2 8 Q50 2 100 6 Q150 10 198 4" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" />
+                  </svg>
+                </span>
+                <br />
+                Find Out in Seconds.
+              </h1>
+
+              <p className="text-lg sm:text-xl text-muted max-w-2xl mx-auto lg:mx-0 mb-10 animate-fade-in-delay">
+                Paste any service quote &mdash; car repairs, plumbing, dental work,
+                renovations &mdash; and our AI instantly tells you if you&apos;re being
+                overcharged. With line-by-line analysis and negotiation scripts.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start animate-fade-in-delay-2">
+                <Link
+                  href="/analyze"
+                  className="inline-flex items-center justify-center gap-2 bg-primary text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-primary-dark transition shadow-lg shadow-blue-200"
+                >
+                  Start Checking Quotes
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+                <a
+                  href="#how-it-works"
+                  className="inline-flex items-center justify-center gap-2 border-2 border-gray-200 text-foreground px-8 py-4 rounded-xl text-lg font-semibold hover:border-primary hover:text-primary transition"
+                >
+                  See How It Works
+                </a>
+              </div>
+
+              <p className="text-sm text-muted mt-5">
+                100 quote checks per month &middot; AI-powered analysis
+              </p>
+            </div>
+
+            {/* Right: Phone mockup */}
+            <div className="hidden lg:flex justify-center animate-fade-in-delay">
+              <div className="relative">
+                {/* Phone frame */}
+                <div className="w-[280px] h-[560px] bg-gray-900 rounded-[3rem] p-3 shadow-2xl shadow-blue-200/50 rotate-[-3deg] hover:rotate-0 transition-transform duration-500">
+                  <div className="w-full h-full bg-white rounded-[2.3rem] overflow-hidden flex flex-col items-center pt-12 px-6">
+                    {/* Notch */}
+                    <div className="absolute top-3 left-1/2 -translate-x-1/2 w-24 h-6 bg-gray-900 rounded-full z-10" />
+
+                    {/* App content */}
+                    <div className="flex items-center gap-1.5 mb-8">
+                      <ShieldCheck className="w-5 h-5 text-primary" />
+                      <span className="text-sm font-bold text-foreground">Quote<span className="text-primary">Check</span></span>
+                    </div>
+
+                    {/* Score circle */}
+                    <div className="relative w-36 h-36 mb-4">
+                      <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
+                        <circle cx="60" cy="60" r="52" fill="none" stroke="#e5e7eb" strokeWidth="8" />
+                        <circle cx="60" cy="60" r="52" fill="none" stroke="#10b981" strokeWidth="8" strokeDasharray="327" strokeDashoffset="54" strokeLinecap="round" className="animate-score-fill" />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-3xl font-bold text-foreground">83%</span>
+                        <span className="text-[10px] font-semibold text-accent uppercase tracking-wider">Fair Price</span>
+                      </div>
+                    </div>
+
+                    {/* Result items */}
+                    <div className="w-full space-y-2 mb-4">
+                      <div className="flex items-center justify-between bg-green-50 rounded-lg px-3 py-2">
+                        <span className="text-xs text-foreground">Brake Pads</span>
+                        <span className="text-xs font-bold text-accent">$185</span>
+                      </div>
+                      <div className="flex items-center justify-between bg-red-50 rounded-lg px-3 py-2">
+                        <span className="text-xs text-foreground">Labor (3hr)</span>
+                        <span className="text-xs font-bold text-danger">$540</span>
+                      </div>
+                      <div className="flex items-center justify-between bg-green-50 rounded-lg px-3 py-2">
+                        <span className="text-xs text-foreground">Rotors</span>
+                        <span className="text-xs font-bold text-accent">$220</span>
+                      </div>
+                    </div>
+
+                    <div className="w-full bg-primary text-white text-xs font-semibold py-2.5 rounded-lg text-center">
+                      Generate Negotiation Script
+                    </div>
+                  </div>
+                </div>
+
+                {/* Floating badge */}
+                <div className="absolute -right-4 top-16 bg-white rounded-xl shadow-lg border border-gray-100 px-4 py-3 animate-float">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <CheckCircle className="w-5 h-5 text-accent" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-foreground">You could save</p>
+                      <p className="text-sm font-bold text-accent">$450</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Floating category icons */}
+                <div className="absolute -left-8 bottom-24 bg-white rounded-xl shadow-lg border border-gray-100 p-3 animate-float-delayed">
+                  <div className="flex gap-2">
+                    <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                      <Car className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                      <Wrench className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                      <Stethoscope className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                      <Home className="w-4 h-4 text-primary" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight mb-6">
-            Is This Price{" "}
-            <span className="text-primary relative">
-              Fair?
-              <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 200 12" fill="none">
-                <path d="M2 8 Q50 2 100 6 Q150 10 198 4" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" />
-              </svg>
-            </span>
-            <br />
-            Find Out in Seconds.
-          </h1>
-
-          <p className="text-lg sm:text-xl text-muted max-w-2xl mx-auto mb-10 animate-fade-in-delay">
-            Paste any service quote &mdash; car repairs, plumbing, dental work,
-            renovations &mdash; and our AI instantly tells you if you&apos;re being
-            overcharged. With line-by-line analysis and negotiation scripts.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-delay-2">
-            <Link
-              href="/analyze"
-              className="inline-flex items-center justify-center gap-2 bg-primary text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-primary-dark transition shadow-lg shadow-blue-200"
-            >
-              Start Checking Quotes
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-            <a
-              href="#how-it-works"
-              className="inline-flex items-center justify-center gap-2 border-2 border-gray-200 text-foreground px-8 py-4 rounded-xl text-lg font-semibold hover:border-primary hover:text-primary transition"
-            >
-              See How It Works
-            </a>
-          </div>
-
-          <p className="text-sm text-muted mt-5">
-            100 quote checks per month &middot; AI-powered analysis
-          </p>
         </div>
       </section>
 
@@ -427,29 +514,49 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 px-4 bg-gradient-to-r from-blue-600 to-blue-800">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-            Stop Overpaying. Start Checking.
-          </h2>
-          <p className="text-blue-100 text-lg mb-8 max-w-xl mx-auto">
-            Join thousands of smart consumers who check every quote before they pay.
-            One quote check can save you hundreds of dollars.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link
-              href="/pricing"
-              className="inline-flex items-center gap-2 bg-white text-primary px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-50 transition shadow-lg"
-            >
-              View Pricing
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 bg-blue-700 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-800 transition border border-blue-500"
-            >
-              Sign In
-            </Link>
+      <section className="py-20 px-4 bg-gradient-to-r from-blue-600 to-blue-800 overflow-hidden">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Left: CTA phone mockup */}
+            <div className="hidden lg:flex justify-center order-1">
+              <div className="w-[220px] h-[440px] bg-white/10 backdrop-blur-sm rounded-[2.5rem] p-3 border border-white/20">
+                <div className="w-full h-full bg-white rounded-[2rem] overflow-hidden flex flex-col items-center justify-center px-6">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                    <CheckCircle className="w-10 h-10 text-accent" />
+                  </div>
+                  <h3 className="text-lg font-bold text-foreground text-center mb-1">Fair Price</h3>
+                  <h3 className="text-lg font-bold text-accent text-center mb-3">Confirmed!</h3>
+                  <p className="text-sm text-muted text-center mb-4">You could save</p>
+                  <p className="text-3xl font-bold text-accent">$450</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Text */}
+            <div className="text-center lg:text-left order-2">
+              <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+                Stop Overpaying. Start Checking.
+              </h2>
+              <p className="text-blue-100 text-lg mb-8 max-w-xl mx-auto lg:mx-0">
+                Join thousands of smart consumers who check every quote before they pay.
+                One quote check can save you hundreds of dollars.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center">
+                <Link
+                  href="/pricing"
+                  className="inline-flex items-center gap-2 bg-white text-primary px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-50 transition shadow-lg"
+                >
+                  View Pricing
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 bg-blue-700 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-800 transition border border-blue-500"
+                >
+                  Sign In
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
