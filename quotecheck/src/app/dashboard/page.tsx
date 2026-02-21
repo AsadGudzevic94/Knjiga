@@ -27,7 +27,6 @@ import {
   FileText,
   ArrowRight,
   Trash2,
-  ExternalLink,
   DollarSign,
   Target,
   Activity,
@@ -40,6 +39,9 @@ import {
   MessageSquare,
   RefreshCw,
   Pencil,
+  Sparkles,
+  AlertTriangle,
+  Eye,
 } from "lucide-react";
 import type { QuoteAnalysis } from "@/lib/types";
 
@@ -68,109 +70,10 @@ interface SavedQuote {
   score: number;
   verdict: string;
   itemCount: number;
+  quoteData: QuoteAnalysis | null;
 }
 
-// Demo data - in production this would come from Supabase
-const DEMO_QUOTES: SavedQuote[] = [
-  {
-    id: "1",
-    date: "2026-02-14",
-    category: "Auto Repair",
-    vendor: "Smith's Garage",
-    totalQuoted: 1366,
-    fairMid: 980,
-    savings: 386,
-    score: 5,
-    verdict: "slightly_high",
-    itemCount: 6,
-  },
-  {
-    id: "2",
-    date: "2026-02-10",
-    category: "Plumbing",
-    vendor: "Quick Plumb Pro",
-    totalQuoted: 850,
-    fairMid: 720,
-    savings: 130,
-    score: 7,
-    verdict: "fair",
-    itemCount: 3,
-  },
-  {
-    id: "3",
-    date: "2026-02-05",
-    category: "Dental",
-    vendor: "Bright Smiles Dental",
-    totalQuoted: 2100,
-    fairMid: 1350,
-    savings: 750,
-    score: 3,
-    verdict: "overpriced",
-    itemCount: 4,
-  },
-  {
-    id: "4",
-    date: "2026-01-28",
-    category: "Home Renovation",
-    vendor: "Elite Home Builders",
-    totalQuoted: 18500,
-    fairMid: 15200,
-    savings: 3300,
-    score: 4,
-    verdict: "slightly_high",
-    itemCount: 8,
-  },
-  {
-    id: "5",
-    date: "2026-01-20",
-    category: "HVAC",
-    vendor: "CoolAir Systems",
-    totalQuoted: 5200,
-    fairMid: 5100,
-    savings: 100,
-    score: 8,
-    verdict: "fair",
-    itemCount: 5,
-  },
-  {
-    id: "6",
-    date: "2026-01-15",
-    category: "Electrical",
-    vendor: "Spark Electric",
-    totalQuoted: 1800,
-    fairMid: 1400,
-    savings: 400,
-    score: 5,
-    verdict: "slightly_high",
-    itemCount: 4,
-  },
-  {
-    id: "7",
-    date: "2026-01-08",
-    category: "Auto Repair",
-    vendor: "Downtown Auto",
-    totalQuoted: 720,
-    fairMid: 690,
-    savings: 30,
-    score: 9,
-    verdict: "great_deal",
-    itemCount: 3,
-  },
-  {
-    id: "8",
-    date: "2025-12-20",
-    category: "Legal",
-    vendor: "Johnson & Partners",
-    totalQuoted: 3500,
-    fairMid: 2800,
-    savings: 700,
-    score: 4,
-    verdict: "slightly_high",
-    itemCount: 2,
-  },
-];
-
-const SCORE_COLORS = {
+const SCORE_COLORS: Record<string, string> = {
   great_deal: "#22c55e",
   fair: "#22c55e",
   slightly_high: "#eab308",
@@ -178,7 +81,20 @@ const SCORE_COLORS = {
   ripoff: "#ef4444",
 };
 
+const VERDICT_LABELS: Record<string, string> = {
+  great_deal: "Great Deal",
+  fair: "Fair Price",
+  slightly_high: "Slightly High",
+  overpriced: "Overpriced",
+  ripoff: "Rip-off",
+};
+
 const PIE_COLORS = ["#22c55e", "#eab308", "#ef4444"];
+
+function stripCitations(text: string): string {
+  if (!text) return "";
+  return text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, "");
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -189,6 +105,7 @@ export default function DashboardPage() {
   const [emailAnalyses, setEmailAnalyses] = useState<EmailAnalysis[]>([]);
   const [emailsLoading, setEmailsLoading] = useState(false);
   const [expandedEmail, setExpandedEmail] = useState<string | null>(null);
+  const [expandedQuote, setExpandedQuote] = useState<string | null>(null);
   const [generatingReply, setGeneratingReply] = useState<string | null>(null);
   const [copiedReply, setCopiedReply] = useState<string | null>(null);
   const [editingReply, setEditingReply] = useState<string | null>(null);
@@ -201,13 +118,11 @@ export default function DashboardPage() {
   } | null>(null);
 
   useEffect(() => {
-    // Redirect if not logged in
     if (!authLoading && !user) {
       router.replace('/login');
       return;
     }
 
-    // Fetch user's quotes and quota
     async function fetchQuotes() {
       if (!user) return;
 
@@ -218,7 +133,6 @@ export default function DashboardPage() {
           return;
         }
 
-        // Fetch quotes
         const response = await fetch('/api/quotes/list', {
           headers: {
             'Authorization': `Bearer ${session.session.access_token}`,
@@ -229,12 +143,9 @@ export default function DashboardPage() {
           const data = await response.json();
           setQuotes(data.quotes || []);
         } else {
-          console.error('Failed to fetch quotes');
-          // If no quotes yet, show empty state
           setQuotes([]);
         }
 
-        // Fetch quota info
         const quotaResponse = await fetch('/api/usage/check', {
           headers: {
             'Authorization': `Bearer ${session.session.access_token}`,
@@ -275,6 +186,7 @@ export default function DashboardPage() {
     if (activeTab === "emails" && user && emailAnalyses.length === 0) {
       fetchEmailAnalyses();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, user]);
 
   async function fetchEmailAnalyses() {
@@ -439,6 +351,7 @@ export default function DashboardPage() {
 
       if (res.ok) {
         setQuotes((prev) => prev.filter((q) => q.id !== id));
+        if (expandedQuote === id) setExpandedQuote(null);
       }
     } catch (err) {
       console.error("Failed to delete quote:", err);
@@ -450,10 +363,9 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <main className="pt-24 pb-16 px-4">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center py-20">
-              <p className="text-muted">Loading your dashboard...</p>
-            </div>
+          <div className="max-w-5xl mx-auto text-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
+            <p className="text-muted text-sm">Loading your dashboard...</p>
           </div>
         </main>
       </div>
@@ -461,7 +373,7 @@ export default function DashboardPage() {
   }
 
   if (!user) {
-    return null; // Will redirect to login
+    return null;
   }
 
   return (
@@ -469,87 +381,481 @@ export default function DashboardPage() {
       <Navbar />
 
       <main className="pt-24 pb-16 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
+        <div className="max-w-5xl mx-auto">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-                Your Dashboard
-              </h1>
-              <p className="text-sm text-muted mt-1">
-                Track your quotes, savings, and patterns over time.
+              <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+              <p className="text-sm text-muted mt-0.5">
+                Your quote analysis history and savings.
               </p>
             </div>
             <Link
               href="/analyze"
-              className="hidden sm:inline-flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-primary-dark transition"
+              className="inline-flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-dark transition shadow-sm"
             >
               New Quote Check
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
 
-          {/* Quota Display */}
+          {/* Quota Bar */}
           {quotaInfo && (
-            <div className="mb-6 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-sm font-semibold text-foreground">
-                    Monthly Quota
-                  </p>
-                  <p className="text-xs text-muted mt-0.5">
-                    Resets on the 1st of each month
-                  </p>
+            <div className="mb-6 bg-white border border-gray-100 rounded-xl p-4 flex items-center gap-4">
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-medium text-muted">
+                    Monthly Quota: {quotaInfo.quotesUsed} / {quotaInfo.quotesLimit}
+                  </span>
+                  <span className="text-xs font-bold text-primary">
+                    {quotaInfo.quotesRemaining} left
+                  </span>
                 </div>
-                <div className="text-right">
-                  <p className="text-3xl font-bold text-primary">
-                    {quotaInfo.quotesRemaining}
-                  </p>
-                  <p className="text-xs text-muted">remaining</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 bg-white/50 rounded-full h-3 overflow-hidden">
+                <div className="w-full bg-gray-100 rounded-full h-2">
                   <div
-                    className="bg-primary h-3 rounded-full transition-all duration-300"
+                    className="bg-primary h-2 rounded-full transition-all duration-300"
                     style={{
-                      width: `${(quotaInfo.quotesUsed / quotaInfo.quotesLimit) * 100}%`
+                      width: `${Math.min((quotaInfo.quotesUsed / quotaInfo.quotesLimit) * 100, 100)}%`
                     }}
                   />
                 </div>
-                <span className="text-xs font-medium text-muted whitespace-nowrap">
-                  {quotaInfo.quotesUsed} / {quotaInfo.quotesLimit}
-                </span>
               </div>
             </div>
           )}
 
           {/* Tab switcher */}
-          <div className="flex gap-1 bg-gray-100 rounded-lg p-1 mb-6">
+          <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6">
             <button
               onClick={() => setActiveTab("quotes")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition ${
                 activeTab === "quotes"
                   ? "bg-white shadow-sm text-foreground"
                   : "text-muted hover:text-foreground"
               }`}
             >
               <FileText className="w-4 h-4" />
-              Quote History
+              Quotes
+              {quotes.length > 0 && (
+                <span className="text-xs bg-gray-200 text-muted px-1.5 py-0.5 rounded-full">
+                  {quotes.length}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setActiveTab("emails")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition ${
                 activeTab === "emails"
                   ? "bg-white shadow-sm text-foreground"
                   : "text-muted hover:text-foreground"
               }`}
             >
               <Mail className="w-4 h-4" />
-              Email Analyses
+              Emails
             </button>
           </div>
 
-          {/* Email Analyses Tab */}
+          {/* ========== QUOTES TAB ========== */}
+          {activeTab === "quotes" && (
+            <>
+              {quotes.length === 0 ? (
+                /* Empty state */
+                <div className="bg-white rounded-2xl border border-gray-100 p-8 sm:p-12 text-center">
+                  <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                    <FileText className="w-8 h-8 text-primary" />
+                  </div>
+                  <h2 className="text-xl font-bold text-foreground mb-2">
+                    No quotes saved yet
+                  </h2>
+                  <p className="text-muted text-sm max-w-md mx-auto mb-6">
+                    Analyze a quote and save it to start tracking your savings over time.
+                  </p>
+                  <Link
+                    href="/analyze"
+                    className="inline-flex items-center justify-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-dark transition"
+                  >
+                    Analyze Your First Quote
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  {/* Stat Cards */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                    <div className="bg-white rounded-xl border border-gray-100 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
+                          <DollarSign className="w-4 h-4 text-green-500" />
+                        </div>
+                      </div>
+                      <p className="text-xl font-bold text-foreground">${stats.totalSaved.toLocaleString()}</p>
+                      <p className="text-xs text-muted">Total Saved</p>
+                    </div>
+                    <div className="bg-white rounded-xl border border-gray-100 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                          <FileText className="w-4 h-4 text-primary" />
+                        </div>
+                      </div>
+                      <p className="text-xl font-bold text-foreground">{stats.totalChecked}</p>
+                      <p className="text-xs text-muted">Quotes Checked</p>
+                    </div>
+                    <div className="bg-white rounded-xl border border-gray-100 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 h-8 bg-yellow-50 rounded-lg flex items-center justify-center">
+                          <Target className="w-4 h-4 text-yellow-500" />
+                        </div>
+                      </div>
+                      <p className="text-xl font-bold text-foreground">{stats.avgScore}/10</p>
+                      <p className="text-xs text-muted">Avg Score</p>
+                    </div>
+                    <div className="bg-white rounded-xl border border-gray-100 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center">
+                          <Activity className="w-4 h-4 text-red-500" />
+                        </div>
+                      </div>
+                      <p className="text-xl font-bold text-foreground">{stats.overpricedPct}%</p>
+                      <p className="text-xs text-muted">Found Overpriced</p>
+                    </div>
+                  </div>
+
+                  {/* Quote Cards */}
+                  <div className="space-y-3 mb-6">
+                    <h3 className="text-sm font-semibold text-muted uppercase tracking-wide px-1">
+                      Saved Quotes
+                    </h3>
+                    {quotes.map((q) => {
+                      const isExpanded = expandedQuote === q.id;
+                      const scoreColor =
+                        q.score >= 7 ? "bg-green-500" : q.score >= 4 ? "bg-yellow-500" : "bg-red-500";
+                      const scoreBorder =
+                        q.score >= 7 ? "border-green-200" : q.score >= 4 ? "border-yellow-200" : "border-red-200";
+                      const verdictBg =
+                        q.verdict === "fair" || q.verdict === "great_deal"
+                          ? "bg-green-50 text-green-700"
+                          : q.verdict === "slightly_high"
+                          ? "bg-yellow-50 text-yellow-700"
+                          : "bg-red-50 text-red-700";
+
+                      return (
+                        <div
+                          key={q.id}
+                          className={`bg-white rounded-xl border transition-all ${
+                            isExpanded ? `${scoreBorder} shadow-md` : "border-gray-100 hover:border-gray-200"
+                          }`}
+                        >
+                          {/* Card header — always visible */}
+                          <button
+                            onClick={() => setExpandedQuote(isExpanded ? null : q.id)}
+                            className="w-full p-4 text-left"
+                          >
+                            <div className="flex items-center gap-4">
+                              {/* Score badge */}
+                              <div
+                                className={`w-11 h-11 ${scoreColor} rounded-xl flex items-center justify-center text-white font-bold text-lg shrink-0`}
+                              >
+                                {q.score}
+                              </div>
+
+                              {/* Main info */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-0.5">
+                                  <p className="font-semibold text-foreground truncate">
+                                    {q.vendor}
+                                  </p>
+                                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${verdictBg}`}>
+                                    {VERDICT_LABELS[q.verdict] || q.verdict}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-3 text-xs text-muted">
+                                  <span>{q.category}</span>
+                                  <span>•</span>
+                                  <span>
+                                    {new Date(q.date).toLocaleDateString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                    })}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Price info */}
+                              <div className="text-right shrink-0 hidden sm:block">
+                                <p className="text-sm font-bold text-foreground">
+                                  ${q.totalQuoted.toLocaleString()}
+                                </p>
+                                <p className="text-xs text-green-600 font-medium">
+                                  Save ${q.savings.toLocaleString()}
+                                </p>
+                              </div>
+
+                              {/* Expand arrow */}
+                              <div className="shrink-0">
+                                {isExpanded ? (
+                                  <ChevronUp className="w-5 h-5 text-muted" />
+                                ) : (
+                                  <ChevronDown className="w-5 h-5 text-muted" />
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Mobile price row */}
+                            <div className="flex items-center justify-between mt-2 sm:hidden">
+                              <span className="text-sm font-bold text-foreground">
+                                ${q.totalQuoted.toLocaleString()}
+                              </span>
+                              <span className="text-sm text-green-600 font-medium">
+                                Save ${q.savings.toLocaleString()}
+                              </span>
+                            </div>
+                          </button>
+
+                          {/* Expanded details */}
+                          {isExpanded && (
+                            <div className="border-t border-gray-100 px-4 pb-4">
+                              {/* Price breakdown bar */}
+                              <div className="pt-4 pb-3">
+                                <div className="flex items-center justify-between text-xs text-muted mb-2">
+                                  <span>Fair Price: ${q.fairMid.toLocaleString()}</span>
+                                  <span>Quoted: ${q.totalQuoted.toLocaleString()}</span>
+                                </div>
+                                <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
+                                  <div
+                                    className="absolute inset-y-0 left-0 bg-green-400 rounded-full"
+                                    style={{ width: `${Math.min((q.fairMid / q.totalQuoted) * 100, 100)}%` }}
+                                  />
+                                  <div
+                                    className="absolute inset-y-0 left-0 bg-red-400 rounded-full opacity-40"
+                                    style={{ width: "100%" }}
+                                  />
+                                  <div
+                                    className="absolute inset-y-0 left-0 bg-green-500 rounded-full"
+                                    style={{ width: `${Math.min((q.fairMid / q.totalQuoted) * 100, 100)}%` }}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Line items from quoteData */}
+                              {q.quoteData?.lineItems && q.quoteData.lineItems.length > 0 && (
+                                <div className="mb-4">
+                                  <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+                                    Line Items
+                                  </p>
+                                  <div className="space-y-1.5">
+                                    {q.quoteData.lineItems.map((li, idx) => (
+                                      <div
+                                        key={idx}
+                                        className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
+                                          li.status === "overpriced"
+                                            ? "bg-red-50"
+                                            : li.status === "slightly_high"
+                                            ? "bg-yellow-50"
+                                            : "bg-green-50"
+                                        }`}
+                                      >
+                                        <span className="text-foreground">{li.item}</span>
+                                        <div className="flex items-center gap-3">
+                                          <span className="font-medium">${li.quotedPrice.toLocaleString()}</span>
+                                          <span className="text-xs text-muted">
+                                            Fair: ${li.fairPriceLow.toLocaleString()}-${li.fairPriceHigh.toLocaleString()}
+                                          </span>
+                                          <span
+                                            className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                                              li.status === "overpriced"
+                                                ? "bg-red-100 text-red-700"
+                                                : li.status === "slightly_high"
+                                                ? "bg-yellow-100 text-yellow-700"
+                                                : "bg-green-100 text-green-700"
+                                            }`}
+                                          >
+                                            {li.status === "fair" ? "Fair" : li.status === "slightly_high" ? "High" : "Overpriced"}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* AI Analysis snippet */}
+                              {q.quoteData?.aiAnalysis?.detailedExplanation && (
+                                <div className="mb-4 bg-purple-50 border border-purple-100 rounded-xl p-4">
+                                  <p className="text-xs font-semibold text-purple-700 flex items-center gap-1.5 mb-2">
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                    AI Analysis
+                                  </p>
+                                  <p className="text-sm text-purple-800 leading-relaxed line-clamp-4">
+                                    {stripCitations(q.quoteData.aiAnalysis.detailedExplanation)}
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Negotiation tips */}
+                              {q.quoteData?.negotiationTips && q.quoteData.negotiationTips.length > 0 && (
+                                <div className="mb-4">
+                                  <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+                                    Negotiation Tips
+                                  </p>
+                                  <ul className="space-y-1">
+                                    {q.quoteData.negotiationTips.slice(0, 3).map((tip, i) => (
+                                      <li key={i} className="text-sm text-muted flex items-start gap-2">
+                                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                                        {stripCitations(tip)}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {/* Red flags */}
+                              {q.quoteData?.protection?.scamFlags && q.quoteData.protection.scamFlags.length > 0 && (
+                                <div className="mb-4 bg-red-50 border border-red-100 rounded-xl p-4">
+                                  <p className="text-xs font-semibold text-red-700 flex items-center gap-1.5 mb-2">
+                                    <AlertTriangle className="w-3.5 h-3.5" />
+                                    Flags Found
+                                  </p>
+                                  <ul className="space-y-1">
+                                    {q.quoteData.protection.scamFlags.map((flag, i) => (
+                                      <li key={i} className="text-sm text-red-700">
+                                        <span className="font-medium">{flag.name}</span>
+                                        <span className="text-red-600"> — {stripCitations(flag.description)}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {/* Watch out for */}
+                              {q.quoteData?.aiAnalysis?.watchOutFor && q.quoteData.aiAnalysis.watchOutFor.length > 0 && (
+                                <div className="mb-4 bg-amber-50 border border-amber-100 rounded-xl p-3">
+                                  <p className="text-xs font-semibold text-amber-700 flex items-center gap-1.5 mb-1.5">
+                                    <Eye className="w-3.5 h-3.5" />
+                                    Watch Out For
+                                  </p>
+                                  <ul className="space-y-1">
+                                    {q.quoteData.aiAnalysis.watchOutFor.map((item, i) => (
+                                      <li key={i} className="text-sm text-amber-700 flex items-start gap-2">
+                                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                                        {stripCitations(item)}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {/* Actions */}
+                              <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm("Delete this saved quote?")) {
+                                      removeQuote(q.id);
+                                    }
+                                  }}
+                                  className="flex items-center gap-1.5 text-xs text-muted hover:text-red-500 transition px-3 py-1.5 rounded-lg hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Charts — only show when 3+ quotes */}
+                  {quotes.length >= 3 && (
+                    <>
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+                        {/* Savings over time */}
+                        <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 p-5">
+                          <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2 text-sm">
+                            <TrendingDown className="w-4 h-4 text-primary" />
+                            Savings Over Time
+                          </h3>
+                          <div className="h-52">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart data={savingsOverTime}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${v}`} />
+                                <Tooltip
+                                  formatter={(value) => [`$${Number(value).toLocaleString()}`, ""]}
+                                  labelStyle={{ fontWeight: 600 }}
+                                />
+                                <Line
+                                  type="monotone"
+                                  dataKey="cumulative"
+                                  stroke="#2563eb"
+                                  strokeWidth={2}
+                                  dot={{ fill: "#2563eb", r: 3 }}
+                                  name="Total Saved"
+                                />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+
+                        {/* Verdict pie */}
+                        <div className="bg-white rounded-xl border border-gray-100 p-5">
+                          <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2 text-sm">
+                            <ShieldCheck className="w-4 h-4 text-primary" />
+                            Quote Verdicts
+                          </h3>
+                          <div className="h-52">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie
+                                  data={verdictDistribution}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={40}
+                                  outerRadius={70}
+                                  paddingAngle={4}
+                                  dataKey="value"
+                                  label={({ name, value }) => `${name}: ${value}`}
+                                >
+                                  {verdictDistribution.map((_, i) => (
+                                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                                  ))}
+                                </Pie>
+                                <Tooltip />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Savings by category */}
+                      {categoryBreakdown.length > 1 && (
+                        <div className="bg-white rounded-xl border border-gray-100 p-5 mb-4">
+                          <h3 className="font-semibold text-foreground mb-4 text-sm">
+                            Savings by Category
+                          </h3>
+                          <div className="h-48">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={categoryBreakdown} layout="vertical">
+                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                <XAxis type="number" tickFormatter={(v) => `$${v}`} tick={{ fontSize: 11 }} />
+                                <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={100} />
+                                <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, "Savings"]} />
+                                <Bar dataKey="savings" fill="#2563eb" radius={[0, 6, 6, 0]} barSize={20} />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </>
+          )}
+
+          {/* ========== EMAILS TAB ========== */}
           {activeTab === "emails" && (
             <div className="space-y-4">
               {emailsLoading ? (
@@ -665,7 +971,6 @@ export default function DashboardPage() {
                             {ea.analysis_status === "completed" &&
                             ea.analysis_result ? (
                               <div className="space-y-4 pt-4">
-                                {/* Score summary */}
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                   <div className="bg-gray-50 rounded-lg p-3">
                                     <p className="text-xs text-muted">Score</p>
@@ -676,79 +981,55 @@ export default function DashboardPage() {
                                   <div className="bg-gray-50 rounded-lg p-3">
                                     <p className="text-xs text-muted">Quoted</p>
                                     <p className="text-lg font-bold">
-                                      $
-                                      {ea.analysis_result.totalQuoted.toLocaleString()}
+                                      ${ea.analysis_result.totalQuoted.toLocaleString()}
                                     </p>
                                   </div>
                                   <div className="bg-gray-50 rounded-lg p-3">
-                                    <p className="text-xs text-muted">
-                                      Fair Range
-                                    </p>
+                                    <p className="text-xs text-muted">Fair Range</p>
                                     <p className="text-lg font-bold">
-                                      $
-                                      {ea.analysis_result.fairTotalLow.toLocaleString()}
-                                      -$
-                                      {ea.analysis_result.fairTotalHigh.toLocaleString()}
+                                      ${ea.analysis_result.fairTotalLow.toLocaleString()}-${ea.analysis_result.fairTotalHigh.toLocaleString()}
                                     </p>
                                   </div>
                                   <div className="bg-gray-50 rounded-lg p-3">
-                                    <p className="text-xs text-muted">
-                                      Potential Savings
-                                    </p>
+                                    <p className="text-xs text-muted">Potential Savings</p>
                                     <p className="text-lg font-bold text-green-600">
-                                      $
-                                      {ea.analysis_result.potentialSavings.toLocaleString()}
+                                      ${ea.analysis_result.potentialSavings.toLocaleString()}
                                     </p>
                                   </div>
                                 </div>
 
-                                {/* Line items */}
                                 {ea.analysis_result.lineItems.length > 0 && (
                                   <div>
-                                    <p className="text-sm font-medium text-foreground mb-2">
-                                      Line Items
-                                    </p>
+                                    <p className="text-sm font-medium text-foreground mb-2">Line Items</p>
                                     <div className="space-y-1">
-                                      {ea.analysis_result.lineItems.map(
-                                        (li, idx) => (
-                                          <div
-                                            key={idx}
-                                            className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
-                                              li.status === "overpriced"
-                                                ? "bg-red-50"
-                                                : li.status === "slightly_high"
-                                                ? "bg-yellow-50"
-                                                : "bg-green-50"
-                                            }`}
-                                          >
-                                            <span className="text-foreground">
-                                              {li.item}
+                                      {ea.analysis_result.lineItems.map((li, idx) => (
+                                        <div
+                                          key={idx}
+                                          className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
+                                            li.status === "overpriced"
+                                              ? "bg-red-50"
+                                              : li.status === "slightly_high"
+                                              ? "bg-yellow-50"
+                                              : "bg-green-50"
+                                          }`}
+                                        >
+                                          <span className="text-foreground">{li.item}</span>
+                                          <div className="flex items-center gap-3">
+                                            <span className="font-medium">${li.quotedPrice.toLocaleString()}</span>
+                                            <span
+                                              className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                                                li.status === "overpriced"
+                                                  ? "bg-red-100 text-red-700"
+                                                  : li.status === "slightly_high"
+                                                  ? "bg-yellow-100 text-yellow-700"
+                                                  : "bg-green-100 text-green-700"
+                                              }`}
+                                            >
+                                              {li.status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
                                             </span>
-                                            <div className="flex items-center gap-3">
-                                              <span className="font-medium">
-                                                $
-                                                {li.quotedPrice.toLocaleString()}
-                                              </span>
-                                              <span
-                                                className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                                                  li.status === "overpriced"
-                                                    ? "bg-red-100 text-red-700"
-                                                    : li.status ===
-                                                      "slightly_high"
-                                                    ? "bg-yellow-100 text-yellow-700"
-                                                    : "bg-green-100 text-green-700"
-                                                }`}
-                                              >
-                                                {li.status
-                                                  .replace(/_/g, " ")
-                                                  .replace(/\b\w/g, (c) =>
-                                                    c.toUpperCase()
-                                                  )}
-                                              </span>
-                                            </div>
                                           </div>
-                                        )
-                                      )}
+                                        </div>
+                                      ))}
                                     </div>
                                   </div>
                                 )}
@@ -779,19 +1060,13 @@ export default function DashboardPage() {
                                             </button>
                                           )}
                                           <button
-                                            onClick={() =>
-                                              copyReply(ea.id, ea.draft_reply!)
-                                            }
+                                            onClick={() => copyReply(ea.id, ea.draft_reply!)}
                                             className="flex items-center gap-1 text-xs text-primary hover:text-primary-dark transition"
                                           >
                                             {copiedReply === ea.id ? (
-                                              <>
-                                                <Check className="w-3 h-3" /> Copied
-                                              </>
+                                              <><Check className="w-3 h-3" /> Copied</>
                                             ) : (
-                                              <>
-                                                <Copy className="w-3 h-3" /> Copy
-                                              </>
+                                              <><Copy className="w-3 h-3" /> Copy</>
                                             )}
                                           </button>
                                           <button
@@ -832,14 +1107,11 @@ export default function DashboardPage() {
                                       ) : (
                                         <MessageSquare className="w-4 h-4" />
                                       )}
-                                      {generatingReply === ea.id
-                                        ? "Generating reply..."
-                                        : "Generate Reply"}
+                                      {generatingReply === ea.id ? "Generating reply..." : "Generate Reply"}
                                     </button>
                                   )}
                                 </div>
 
-                                {/* Delete button */}
                                 <div className="border-t border-gray-100 pt-3 flex justify-end">
                                   <button
                                     onClick={(e) => {
@@ -862,50 +1134,34 @@ export default function DashboardPage() {
                               </div>
                             ) : ea.analysis_status === "skipped" ? (
                               <div className="pt-4 space-y-3">
-                                <p className="text-sm text-muted">
-                                  Skipped: {ea.error_message || "Not a quote email"}
-                                </p>
+                                <p className="text-sm text-muted">Skipped: {ea.error_message || "Not a quote email"}</p>
                                 <div className="flex justify-end">
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      if (confirm("Delete this email analysis?")) {
-                                        deleteEmailAnalysis(ea.id);
-                                      }
+                                      if (confirm("Delete this email analysis?")) deleteEmailAnalysis(ea.id);
                                     }}
                                     disabled={deletingEmail === ea.id}
                                     className="flex items-center gap-1.5 text-xs text-muted hover:text-red-500 transition disabled:opacity-60"
                                   >
-                                    {deletingEmail === ea.id ? (
-                                      <Loader2 className="w-3 h-3 animate-spin" />
-                                    ) : (
-                                      <Trash2 className="w-3 h-3" />
-                                    )}
+                                    {deletingEmail === ea.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                                     Delete
                                   </button>
                                 </div>
                               </div>
                             ) : ea.analysis_status === "failed" ? (
                               <div className="pt-4 space-y-3">
-                                <p className="text-sm text-red-600">
-                                  Failed: {ea.error_message || "Analysis error"}
-                                </p>
+                                <p className="text-sm text-red-600">Failed: {ea.error_message || "Analysis error"}</p>
                                 <div className="flex justify-end">
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      if (confirm("Delete this email analysis?")) {
-                                        deleteEmailAnalysis(ea.id);
-                                      }
+                                      if (confirm("Delete this email analysis?")) deleteEmailAnalysis(ea.id);
                                     }}
                                     disabled={deletingEmail === ea.id}
                                     className="flex items-center gap-1.5 text-xs text-muted hover:text-red-500 transition disabled:opacity-60"
                                   >
-                                    {deletingEmail === ea.id ? (
-                                      <Loader2 className="w-3 h-3 animate-spin" />
-                                    ) : (
-                                      <Trash2 className="w-3 h-3" />
-                                    )}
+                                    {deletingEmail === ea.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                                     Delete
                                   </button>
                                 </div>
@@ -913,14 +1169,10 @@ export default function DashboardPage() {
                             ) : ea.analysis_status === "processing" ? (
                               <div className="flex items-center gap-2 pt-4">
                                 <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                                <p className="text-sm text-muted">
-                                  Analysis in progress...
-                                </p>
+                                <p className="text-sm text-muted">Analysis in progress...</p>
                               </div>
                             ) : (
-                              <p className="text-sm text-muted pt-4">
-                                Pending analysis
-                              </p>
+                              <p className="text-sm text-muted pt-4">Pending analysis</p>
                             )}
                           </div>
                         )}
@@ -931,283 +1183,10 @@ export default function DashboardPage() {
               )}
             </div>
           )}
-
-          {/* Quotes Tab Content */}
-          {activeTab === "quotes" && quotes.length === 0 && !loading && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-8 sm:p-12 mb-8 text-center">
-              <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
-                <FileText className="w-8 h-8 text-primary" />
-              </div>
-              <h2 className="text-xl font-bold text-foreground mb-2">
-                No quotes analyzed yet
-              </h2>
-              <p className="text-muted text-sm max-w-md mx-auto mb-6">
-                Upload your first service quote and our AI will tell you if the price is fair,
-                what you should be paying, and how to negotiate a better deal.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Link
-                  href="/analyze"
-                  className="inline-flex items-center justify-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-dark transition"
-                >
-                  Analyze Your First Quote
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-                {quotaInfo && !quotaInfo.quotesLimit && (
-                  <Link
-                    href="/pricing"
-                    className="inline-flex items-center justify-center gap-2 border-2 border-gray-200 px-6 py-3 rounded-xl font-semibold hover:border-primary hover:text-primary transition"
-                  >
-                    View Plans
-                  </Link>
-                )}
-              </div>
-
-              {/* Quick tips */}
-              <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left max-w-2xl mx-auto">
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-xs font-semibold text-foreground mb-1">Step 1</p>
-                  <p className="text-xs text-muted">Paste or type your quote details into the analyzer</p>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-xs font-semibold text-foreground mb-1">Step 2</p>
-                  <p className="text-xs text-muted">Our AI researches real-time pricing for your area</p>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-xs font-semibold text-foreground mb-1">Step 3</p>
-                  <p className="text-xs text-muted">Get a detailed report with fair prices and negotiation tips</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Stats cards */}
-          <div className={`grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 ${quotes.length === 0 || activeTab !== 'quotes' ? 'hidden' : ''}`}>
-            <StatCard
-              icon={<DollarSign className="w-5 h-5" />}
-              label="Total Saved"
-              value={`$${stats.totalSaved.toLocaleString()}`}
-              color="text-green-500"
-              bg="bg-green-50"
-            />
-            <StatCard
-              icon={<FileText className="w-5 h-5" />}
-              label="Quotes Checked"
-              value={stats.totalChecked.toString()}
-              color="text-primary"
-              bg="bg-blue-50"
-            />
-            <StatCard
-              icon={<Target className="w-5 h-5" />}
-              label="Avg Score"
-              value={`${stats.avgScore}/10`}
-              color="text-yellow-500"
-              bg="bg-yellow-50"
-            />
-            <StatCard
-              icon={<Activity className="w-5 h-5" />}
-              label="Found Overpriced"
-              value={`${stats.overpricedPct}%`}
-              color="text-red-500"
-              bg="bg-red-50"
-            />
-          </div>
-
-          {/* Charts row */}
-          <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 ${quotes.length === 0 || activeTab !== 'quotes' ? 'hidden' : ''}`}>
-            {/* Cumulative savings */}
-            <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-5">
-              <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-                <TrendingDown className="w-5 h-5 text-primary" />
-                Savings Over Time
-              </h3>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={savingsOverTime}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v}`} />
-                    <Tooltip
-                      formatter={(value) => [`$${Number(value).toLocaleString()}`, ""]}
-                      labelStyle={{ fontWeight: 600 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="cumulative"
-                      stroke="#2563eb"
-                      strokeWidth={2.5}
-                      dot={{ fill: "#2563eb", r: 4 }}
-                      name="Total Saved"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="savings"
-                      stroke="#10b981"
-                      strokeWidth={1.5}
-                      strokeDasharray="5 5"
-                      dot={{ fill: "#10b981", r: 3 }}
-                      name="Per Quote"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Verdict pie */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-primary" />
-                Quote Verdicts
-              </h3>
-              <div className="h-52">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={verdictDistribution}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={80}
-                      paddingAngle={4}
-                      dataKey="value"
-                      label={({ name, percent }) =>
-                        `${name} ${((percent ?? 0) * 100).toFixed(0)}%`
-                      }
-                    >
-                      {verdictDistribution.map((_, i) => (
-                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-
-          {/* Savings by category */}
-          <div className={`bg-white rounded-2xl border border-gray-100 p-5 mb-8 ${quotes.length === 0 || activeTab !== 'quotes' ? 'hidden' : ''}`}>
-            <h3 className="font-semibold text-foreground mb-4">
-              Savings by Category
-            </h3>
-            <div className="h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={categoryBreakdown} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis type="number" tickFormatter={(v) => `$${v}`} tick={{ fontSize: 12 }} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={120} />
-                  <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, "Savings"]} />
-                  <Bar dataKey="savings" fill="#2563eb" radius={[0, 6, 6, 0]} barSize={24} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Quote history table */}
-          <div className={`bg-white rounded-2xl border border-gray-100 overflow-hidden ${quotes.length === 0 || activeTab !== 'quotes' ? 'hidden' : ''}`}>
-            <div className="p-5 border-b border-gray-100">
-              <h3 className="font-semibold text-foreground">Quote History</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 text-left text-xs text-muted uppercase tracking-wide">
-                    <th className="px-5 py-3">Date</th>
-                    <th className="px-5 py-3">Vendor</th>
-                    <th className="px-5 py-3">Category</th>
-                    <th className="px-5 py-3">Quoted</th>
-                    <th className="px-5 py-3">Fair Price</th>
-                    <th className="px-5 py-3">Score</th>
-                    <th className="px-5 py-3">Savings</th>
-                    <th className="px-5 py-3"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {quotes.map((q) => (
-                    <tr key={q.id} className="hover:bg-gray-50 transition">
-                      <td className="px-5 py-3 text-muted whitespace-nowrap">
-                        {new Date(q.date).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </td>
-                      <td className="px-5 py-3 font-medium text-foreground">
-                        {q.vendor}
-                      </td>
-                      <td className="px-5 py-3 text-muted">{q.category}</td>
-                      <td className="px-5 py-3 font-medium">
-                        ${q.totalQuoted.toLocaleString()}
-                      </td>
-                      <td className="px-5 py-3 text-green-600 font-medium">
-                        ${q.fairMid.toLocaleString()}
-                      </td>
-                      <td className="px-5 py-3">
-                        <span
-                          className="inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold text-white"
-                          style={{
-                            backgroundColor:
-                              SCORE_COLORS[q.verdict as keyof typeof SCORE_COLORS] || "#6b7280",
-                          }}
-                        >
-                          {q.score}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3">
-                        <span className="text-accent font-bold">
-                          ${q.savings.toLocaleString()}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-2">
-                          <button
-                            className="p-1.5 text-muted hover:text-primary transition"
-                            title="View details"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => removeQuote(q.id)}
-                            className="p-1.5 text-muted hover:text-red-500 transition"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
       </main>
 
       <Footer />
-    </div>
-  );
-}
-
-function StatCard({
-  icon,
-  label,
-  value,
-  color,
-  bg,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  color: string;
-  bg: string;
-}) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-100 p-5">
-      <div className={`w-10 h-10 ${bg} rounded-lg flex items-center justify-center ${color} mb-3`}>
-        {icon}
-      </div>
-      <p className="text-2xl font-bold text-foreground">{value}</p>
-      <p className="text-xs text-muted mt-0.5">{label}</p>
     </div>
   );
 }

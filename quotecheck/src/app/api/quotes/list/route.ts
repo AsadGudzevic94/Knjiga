@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
       score: quote.score,
       verdict: quote.verdict,
       itemCount: quote.quote_data?.items?.length || 0,
+      quoteData: quote.quote_data || null,
     }));
 
     return NextResponse.json({ quotes });
