@@ -48,6 +48,7 @@ interface AutomationSettings {
   verificationCode: string | null;
   verificationLink: string | null;
   verificationReceivedAt: string | null;
+  forwardingVerified: boolean;
 }
 
 const DEFAULT_SETTINGS: AutomationSettings = {
@@ -64,6 +65,7 @@ const DEFAULT_SETTINGS: AutomationSettings = {
   verificationCode: null,
   verificationLink: null,
   verificationReceivedAt: null,
+  forwardingVerified: false,
 };
 
 export default function AutomationSettingsPage() {
@@ -373,7 +375,7 @@ export default function AutomationSettingsPage() {
             )}
 
             {/* Gmail verification code or link */}
-            {verificationConfirmed ? (
+            {(verificationConfirmed || settings.forwardingVerified) ? (
               <div className="bg-green-50 border border-green-200 rounded-xl p-4">
                 <div className="flex items-center gap-2">
                   <Check className="w-5 h-5 text-green-600" />

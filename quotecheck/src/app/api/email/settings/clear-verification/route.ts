@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
       verification_link: null,
       verification_email_from: null,
       verification_received_at: null,
+      forwarding_verified: true,
     })
     .eq("user_id", user.id);
 

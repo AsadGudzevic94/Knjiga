@@ -70,6 +70,7 @@ export async function GET(request: NextRequest) {
     verificationCode: settings.verification_code || null,
     verificationLink: settings.verification_link || null,
     verificationReceivedAt: settings.verification_received_at || null,
+    forwardingVerified: settings.forwarding_verified || false,
   });
 }
 
