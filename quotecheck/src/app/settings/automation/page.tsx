@@ -18,6 +18,7 @@ import {
   ChevronDown,
   ChevronUp,
   Info,
+  PlayCircle,
 } from "lucide-react";
 
 const CATEGORIES = [
@@ -311,6 +312,24 @@ export default function AutomationSettingsPage() {
 
             {showInstructions && (
               <div className="bg-gray-50 rounded-xl p-4 space-y-4 text-sm text-muted">
+                {/* Video tutorial */}
+                <div className="mb-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <PlayCircle className="w-4 h-4 text-primary" />
+                    <p className="font-semibold text-foreground">Video Tutorial</p>
+                  </div>
+                  <video
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="w-full rounded-lg border border-gray-200"
+                    poster=""
+                  >
+                    <source src="/email-forwarding-tutorial.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
                   <p className="text-xs text-blue-800">
                     <strong>AI-powered filtering:</strong> You can forward all your emails &mdash; our AI automatically
