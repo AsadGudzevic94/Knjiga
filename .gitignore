@@ -70,3 +70,25 @@ pnpm-lock.yaml
 *.pem
 *.key
 .vercel
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Setup docs and test files
+quotecheck/LEMON_SQUEEZY_SETUP.md
+quotecheck/SETUP_*.md
+quotecheck/WEB_SEARCH_GUIDE.md
+quotecheck/test-*.js
+
+# SQL schema files
+quotecheck/supabase-*.sql
+
+# Next.js default placeholder SVGs
+quotecheck/public/file.svg
+quotecheck/public/globe.svg
+quotecheck/public/next.svg
+quotecheck/public/vercel.svg
+quotecheck/public/window.svg
+
+# Env examples
+quotecheck/.env.local.example
