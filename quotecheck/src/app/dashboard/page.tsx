@@ -590,12 +590,20 @@ export default function DashboardPage() {
                                 </p>
                               </div>
 
-                              {/* Expand arrow */}
-                              <div className="shrink-0">
+                              {/* View Details button */}
+                              <div
+                                className={`shrink-0 flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition ${
+                                  isExpanded
+                                    ? "bg-primary/10 text-primary"
+                                    : "bg-gray-50 text-muted hover:bg-gray-100 hover:text-foreground"
+                                }`}
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span className="hidden sm:inline">{isExpanded ? "Hide" : "Details"}</span>
                                 {isExpanded ? (
-                                  <ChevronUp className="w-5 h-5 text-muted" />
+                                  <ChevronUp className="w-3.5 h-3.5" />
                                 ) : (
-                                  <ChevronDown className="w-5 h-5 text-muted" />
+                                  <ChevronDown className="w-3.5 h-3.5" />
                                 )}
                               </div>
                             </div>
@@ -636,14 +644,17 @@ export default function DashboardPage() {
                                 </div>
                               </div>
 
-                              {/* Line items from quoteData */}
-                              {q.quoteData?.lineItems && q.quoteData.lineItems.length > 0 && (
+                              {/* Line items from quoteData (handles both old "items" and new "lineItems" format) */}
+                              {(() => {
+                                const items = q.quoteData?.lineItems || (q.quoteData as any)?.items;
+                                if (!items || items.length === 0) return null;
+                                return (
                                 <div className="mb-4">
                                   <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
                                     Line Items
                                   </p>
                                   <div className="space-y-1.5">
-                                    {q.quoteData.lineItems.map((li, idx) => (
+                                    {items.map((li: any, idx: number) => (
                                       <div
                                         key={idx}
                                         className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
@@ -676,7 +687,8 @@ export default function DashboardPage() {
                                     ))}
                                   </div>
                                 </div>
-                              )}
+                                );
+                              })()}
 
                               {/* AI Analysis snippet */}
                               {q.quoteData?.aiAnalysis?.detailedExplanation && (

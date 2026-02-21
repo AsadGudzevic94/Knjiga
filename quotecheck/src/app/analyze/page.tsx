@@ -274,7 +274,16 @@ export default function AnalyzePage() {
           savings: result.potentialSavings,
           score: result.overallScore,
           verdict: result.overallVerdict,
-          items: result.lineItems,
+          // Store the full analysis result for dashboard detail view
+          lineItems: result.lineItems,
+          aiAnalysis: result.aiAnalysis || null,
+          negotiationTips: result.negotiationTips || [],
+          negotiationScript: result.negotiationScript || "",
+          protection: result.protection || null,
+          redFlags: result.redFlags || [],
+          summary: result.summary || "",
+          fairTotalLow: result.fairTotalLow,
+          fairTotalHigh: result.fairTotalHigh,
         }),
       });
 
