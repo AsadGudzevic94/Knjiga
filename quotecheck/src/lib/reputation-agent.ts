@@ -110,7 +110,7 @@ Be transparent that this is general guidance, not specific research on this busi
     ];
 
     let response = await client.messages.create({
-      model: "claude-sonnet-4-5-20250929",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 4096,
       system: REPUTATION_SYSTEM,
       tools: REPUTATION_TOOLS,
@@ -118,7 +118,7 @@ Be transparent that this is general guidance, not specific research on this busi
     });
 
     let turns = 0;
-    while (response.stop_reason === "tool_use" && turns < 10) {
+    while (response.stop_reason === "tool_use" && turns < 5) {
       turns++;
       const toolUseBlocks = response.content.filter(
         (block): block is Anthropic.Messages.ToolUseBlock =>
@@ -151,7 +151,7 @@ Be transparent that this is general guidance, not specific research on this busi
       });
 
       response = await client.messages.create({
-        model: "claude-sonnet-4-5-20250929",
+        model: "claude-haiku-4-5-20251001",
         max_tokens: 4096,
         system: REPUTATION_SYSTEM,
         tools: REPUTATION_TOOLS,

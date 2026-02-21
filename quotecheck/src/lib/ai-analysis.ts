@@ -63,7 +63,7 @@ interface AIAnalysisResult {
   lineItemExplanations: Record<string, string>;
 }
 
-const MAX_AGENT_TURNS = 12; // Max tool-use round trips
+const MAX_AGENT_TURNS = 6; // Max tool-use round trips
 
 export async function getAIAnalysis(
   quoteText: string,
@@ -142,7 +142,7 @@ Include 3-6 insights based on industry knowledge and typical pricing patterns. F
     ];
 
     let response = await client.messages.create({
-      model: "claude-sonnet-4-5-20250929",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 4096,
       system: SYSTEM_PROMPT,
       tools: AGENT_TOOLS,
@@ -187,7 +187,7 @@ Include 3-6 insights based on industry knowledge and typical pricing patterns. F
       });
 
       response = await client.messages.create({
-        model: "claude-sonnet-4-5-20250929",
+        model: "claude-haiku-4-5-20251001",
         max_tokens: 4096,
         system: SYSTEM_PROMPT,
         tools: AGENT_TOOLS,
