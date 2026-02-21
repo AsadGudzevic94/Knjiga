@@ -514,30 +514,71 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 px-4 bg-gradient-to-r from-blue-600 to-blue-800 overflow-hidden">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            {/* Left: CTA phone mockup */}
-            <div className="hidden lg:flex justify-center order-1">
-              <div className="w-[220px] h-[440px] bg-white/10 backdrop-blur-sm rounded-[2.5rem] p-3 border border-white/20">
-                <div className="w-full h-full bg-white rounded-[2rem] overflow-hidden flex flex-col items-center justify-center px-6">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                    <CheckCircle className="w-10 h-10 text-accent" />
+      <section className="py-20 px-4 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 overflow-hidden relative">
+        {/* Background pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-10 left-10 w-64 h-64 bg-blue-400 rounded-full blur-3xl" />
+          <div className="absolute bottom-10 right-10 w-80 h-80 bg-blue-500 rounded-full blur-3xl" />
+        </div>
+
+        <div className="max-w-5xl mx-auto relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 items-center">
+            {/* Left: Stats + icons card (takes 2 cols) */}
+            <div className="hidden lg:block lg:col-span-2">
+              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8">
+                {/* Service icons row */}
+                <div className="flex justify-center gap-4 mb-8">
+                  <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                    <Car className="w-6 h-6 text-blue-300" />
                   </div>
-                  <h3 className="text-lg font-bold text-foreground text-center mb-1">Fair Price</h3>
-                  <h3 className="text-lg font-bold text-accent text-center mb-3">Confirmed!</h3>
-                  <p className="text-sm text-muted text-center mb-4">You could save</p>
-                  <p className="text-3xl font-bold text-accent">$450</p>
+                  <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                    <Wrench className="w-6 h-6 text-blue-300" />
+                  </div>
+                  <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                    <Stethoscope className="w-6 h-6 text-blue-300" />
+                  </div>
+                  <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                    <Home className="w-6 h-6 text-blue-300" />
+                  </div>
+                </div>
+
+                {/* Big savings number */}
+                <div className="text-center mb-6">
+                  <p className="text-5xl font-bold text-white mb-1">$450</p>
+                  <p className="text-blue-300 text-sm font-medium">Average savings per quote</p>
+                </div>
+
+                {/* Mini stats */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white/5 rounded-xl p-3 text-center">
+                    <p className="text-xl font-bold text-accent">73%</p>
+                    <p className="text-[11px] text-blue-300">Found overpriced</p>
+                  </div>
+                  <div className="bg-white/5 rounded-xl p-3 text-center">
+                    <p className="text-xl font-bold text-white">10s</p>
+                    <p className="text-[11px] text-blue-300">Instant analysis</p>
+                  </div>
+                  <div className="bg-white/5 rounded-xl p-3 text-center">
+                    <p className="text-xl font-bold text-white">50K+</p>
+                    <p className="text-[11px] text-blue-300">Quotes checked</p>
+                  </div>
+                  <div className="bg-white/5 rounded-xl p-3 text-center">
+                    <div className="flex items-center justify-center gap-0.5">
+                      <p className="text-xl font-bold text-yellow-400">4.9</p>
+                      <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+                    </div>
+                    <p className="text-[11px] text-blue-300">User rating</p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Right: Text */}
-            <div className="text-center lg:text-left order-2">
-              <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-                Stop Overpaying. Start Checking.
+            {/* Right: Text (takes 3 cols) */}
+            <div className="text-center lg:text-left lg:col-span-3">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight">
+                Stop Overpaying.<br />Start Checking.
               </h2>
-              <p className="text-blue-100 text-lg mb-8 max-w-xl mx-auto lg:mx-0">
+              <p className="text-blue-200 text-lg mb-8 max-w-xl mx-auto lg:mx-0">
                 Join thousands of smart consumers who check every quote before they pay.
                 One quote check can save you hundreds of dollars.
               </p>
@@ -551,7 +592,7 @@ export default function LandingPage() {
                 </Link>
                 <Link
                   href="/login"
-                  className="inline-flex items-center gap-2 bg-blue-700 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-800 transition border border-blue-500"
+                  className="inline-flex items-center gap-2 bg-white/10 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-white/20 transition border border-white/20"
                 >
                   Sign In
                 </Link>
