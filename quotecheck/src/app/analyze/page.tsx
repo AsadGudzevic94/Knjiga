@@ -45,6 +45,12 @@ interface AnalysisResponse extends QuoteAnalysis {
   _cache?: { hit: boolean; type?: string; similarity?: number; ageHours?: number };
 }
 
+/** Strip <cite> tags from AI output, keeping the inner text */
+function stripCitations(text: string): string {
+  if (!text) return "";
+  return text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, "");
+}
+
 const CATEGORIES = [
   { value: "auto_repair", label: "Auto Repair" },
   { value: "plumbing", label: "Plumbing" },
@@ -754,7 +760,7 @@ function ResultsView({
             </div>
             <div className="p-5">
               <div className="prose prose-sm max-w-none text-sm text-foreground/80 leading-relaxed whitespace-pre-line">
-                {result.aiAnalysis.detailedExplanation}
+                {stripCitations(result.aiAnalysis.detailedExplanation)}
               </div>
             </div>
           </div>
@@ -767,7 +773,7 @@ function ResultsView({
                 Why This Score?
               </h3>
               <p className="text-sm text-muted leading-relaxed">
-                {result.aiAnalysis.scoreJustification}
+                {stripCitations(result.aiAnalysis.scoreJustification)}
               </p>
             </div>
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
@@ -776,7 +782,7 @@ function ResultsView({
                 Your Area
               </h3>
               <p className="text-sm text-muted leading-relaxed">
-                {result.aiAnalysis.regionalContext}
+                {stripCitations(result.aiAnalysis.regionalContext)}
               </p>
             </div>
           </div>
@@ -810,7 +816,7 @@ function ResultsView({
                         {insight.source}
                       </p>
                       <p className="text-sm text-muted leading-relaxed">
-                        &ldquo;{insight.snippet}&rdquo;
+                        &ldquo;{stripCitations(insight.snippet)}&rdquo;
                       </p>
                     </div>
                     <span
@@ -845,7 +851,7 @@ function ResultsView({
                 {result.aiAnalysis.watchOutFor.map((item, i) => (
                   <li key={i} className="text-sm text-amber-700 flex items-start gap-2">
                     <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                    {item}
+                    {stripCitations(item)}
                   </li>
                 ))}
               </ul>
@@ -911,12 +917,12 @@ function ResultsView({
                   </span>
                 </span>
               </div>
-              <p className="text-xs text-muted mt-1.5 ml-5">{item.notes}</p>
+              <p className="text-xs text-muted mt-1.5 ml-5">{stripCitations(item.notes)}</p>
               {item.aiExplanation && (
                 <div className="mt-2 ml-5 bg-purple-50 border border-purple-100 rounded-lg p-3">
                   <p className="text-xs text-purple-800 leading-relaxed flex items-start gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 mt-0.5 shrink-0 text-purple-400" />
-                    {item.aiExplanation}
+                    {stripCitations(item.aiExplanation)}
                   </p>
                 </div>
               )}
@@ -998,17 +1004,17 @@ function ResultsView({
                       </div>
                     </div>
                     <p className="text-sm text-muted ml-7 mb-2">
-                      {flag.description}
+                      {stripCitations(flag.description)}
                     </p>
                     <div className="ml-7 p-2.5 bg-white/60 rounded-lg border border-white">
                       <p className="text-xs font-semibold text-foreground mb-0.5">
                         What to do:
                       </p>
-                      <p className="text-xs text-muted">{flag.whatToDo}</p>
+                      <p className="text-xs text-muted">{stripCitations(flag.whatToDo)}</p>
                     </div>
                     {flag.realExample && (
                       <p className="text-xs text-muted ml-7 mt-2 italic">
-                        Real case: {flag.realExample}
+                        Real case: {stripCitations(flag.realExample)}
                       </p>
                     )}
                   </div>
@@ -1057,7 +1063,7 @@ function ResultsView({
                         </span>
                       </div>
                       <p className="text-xs text-muted mt-0.5">
-                        {fee.description}
+                        {stripCitations(fee.description)}
                       </p>
                     </div>
                   </div>
@@ -1101,7 +1107,7 @@ function ResultsView({
                     </span>
                   </div>
                   <p className="text-xs text-muted leading-relaxed">
-                    {result.protection.seasonalTip.explanation}
+                    {stripCitations(result.protection.seasonalTip.explanation)}
                   </p>
                 </div>
               </div>
@@ -1164,7 +1170,7 @@ function ResultsView({
                         <span className="text-xs font-bold text-primary bg-blue-50 w-6 h-6 flex items-center justify-center rounded-full shrink-0">
                           {i + 1}
                         </span>
-                        <p className="text-sm text-foreground">{q}</p>
+                        <p className="text-sm text-foreground">{stripCitations(q)}</p>
                       </div>
                     ))}
                   </div>
@@ -1185,7 +1191,7 @@ function ResultsView({
           {result.negotiationTips.map((tip, i) => (
             <li key={i} className="text-sm text-muted flex items-start gap-2">
               <span className="mt-1 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-              {tip}
+              {stripCitations(tip)}
             </li>
           ))}
         </ul>
@@ -1212,7 +1218,7 @@ function ResultsView({
           <div className="px-5 pb-5">
             <div className="bg-blue-50 rounded-xl p-4 relative">
               <pre className="text-sm text-foreground whitespace-pre-wrap font-sans leading-relaxed">
-                {result.negotiationScript}
+                {stripCitations(result.negotiationScript)}
               </pre>
               <button
                 onClick={copyScript}
