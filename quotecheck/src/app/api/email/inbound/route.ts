@@ -172,11 +172,16 @@ export async function POST(request: NextRequest) {
 
       const code = codeMatch ? codeMatch[1] : null;
 
+      // Also try to extract the verification link (Gmail sometimes uses link instead of code)
+      const linkMatch = codeText.match(/(https:\/\/mail-settings\.google\.com\/mail\/vf-[^\s<"]+)/);
+      const verificationLink = linkMatch ? linkMatch[1] : null;
+
       // Store the raw email body too so we can debug if code extraction fails
       await supabase
         .from("email_automation_settings")
         .update({
           verification_code: code,
+          verification_link: verificationLink,
           verification_email_from: fromEmail,
           verification_received_at: new Date().toISOString(),
         })

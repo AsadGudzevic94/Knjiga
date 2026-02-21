@@ -68,6 +68,7 @@ export async function GET(request: NextRequest) {
     forwardingEmail: `${settings.forwarding_address}@${domain}`,
     isSetUp: true,
     verificationCode: settings.verification_code || null,
+    verificationLink: settings.verification_link || null,
     verificationReceivedAt: settings.verification_received_at || null,
   });
 }
