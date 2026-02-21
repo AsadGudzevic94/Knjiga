@@ -92,15 +92,18 @@ export default function AnalyzePage() {
     quotesRemaining: number;
   } | null>(null);
 
-  // Load quota info when component mounts
+  const [userLocation, setUserLocation] = useState<string | null>(null);
+
+  // Load quota info and user profile location when component mounts
   useEffect(() => {
-    async function loadQuota() {
+    async function loadUserData() {
       if (!user) return;
 
       try {
         const { data: session } = await supabase.auth.getSession();
         if (!session.session) return;
 
+        // Load quota
         const res = await fetch('/api/usage/check', {
           headers: {
             'Authorization': `Bearer ${session.session.access_token}`
@@ -115,12 +118,30 @@ export default function AnalyzePage() {
             quotesRemaining: data.quotesRemaining
           });
         }
+
+        // Load profile location
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('zip_code, city, state')
+          .eq('user_id', user.id)
+          .single();
+
+        if (profile) {
+          const parts = [profile.city, profile.state, profile.zip_code].filter(Boolean);
+          if (parts.length > 0) {
+            setUserLocation(parts.join(', '));
+          }
+          // Pre-fill zip if user has one
+          if (profile.zip_code && /^\d{5}$/.test(profile.zip_code)) {
+            setZipCode(profile.zip_code);
+          }
+        }
       } catch (err) {
-        console.error('Failed to load quota:', err);
+        console.error('Failed to load user data:', err);
       }
     }
 
-    loadQuota();
+    loadUserData();
   }, [user]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -306,6 +327,7 @@ export default function AnalyzePage() {
               error={error}
               onSubmit={handleSubmit}
               onLoadExample={loadExample}
+              userLocation={userLocation}
             />
           ) : (
             <ResultsView
@@ -337,6 +359,7 @@ function QuoteForm({
   error,
   onSubmit,
   onLoadExample,
+  userLocation,
 }: {
   quoteText: string;
   setQuoteText: (v: string) => void;
@@ -350,6 +373,7 @@ function QuoteForm({
   error: string;
   onSubmit: (e: React.FormEvent) => void;
   onLoadExample: () => void;
+  userLocation: string | null;
 }) {
   const [inputMode, setInputMode] = useState<"type" | "scan">("type");
 
@@ -448,7 +472,8 @@ function QuoteForm({
 
           <div>
             <label className="text-sm font-medium text-foreground mb-2 block">
-              Your Zip Code
+              Zip Code{" "}
+              <span className="text-xs text-muted font-normal">(optional)</span>
             </label>
             <input
               type="text"
@@ -456,12 +481,16 @@ function QuoteForm({
               onChange={(e) =>
                 setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))
               }
-              placeholder="e.g. 90210"
+              placeholder={userLocation ? `Using: ${userLocation}` : "e.g. 90210"}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              required
               maxLength={5}
-              pattern="\d{5}"
             />
+            {userLocation && !zipCode && (
+              <p className="text-xs text-muted mt-1 flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                Using your profile location: {userLocation}
+              </p>
+            )}
           </div>
         </div>
 

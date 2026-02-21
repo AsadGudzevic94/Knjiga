@@ -17,13 +17,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!body.zipCode || !/^\d{5}$/.test(body.zipCode)) {
-      return NextResponse.json(
-        { error: "Please provide a valid 5-digit zip code." },
-        { status: 400 }
-      );
-    }
-
     // Check user authentication and quota
     const authHeader = request.headers.get("authorization");
     if (!authHeader) {
@@ -46,6 +39,25 @@ export async function POST(request: NextRequest) {
         { error: "Invalid authentication. Please log in again." },
         { status: 401 }
       );
+    }
+
+    // Resolve zip code: use provided zip, or fall back to user profile
+    let zipCode = body.zipCode || "";
+    if (!zipCode || !/^\d{5}$/.test(zipCode)) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("zip_code, city, state")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profile?.zip_code && /^\d{5}$/.test(profile.zip_code)) {
+        zipCode = profile.zip_code;
+      } else if (profile?.city || profile?.state) {
+        // Pass city/state so the AI can use regional data
+        zipCode = `${profile?.city || ""}, ${profile?.state || ""}`.trim().replace(/^,\s*/, "");
+      } else {
+        zipCode = "90210"; // National fallback
+      }
     }
 
     // Check user's quota
@@ -91,7 +103,7 @@ export async function POST(request: NextRequest) {
     const result = await runFullAnalysisPipeline({
       quoteText: body.quoteText,
       serviceCategory: body.serviceCategory,
-      zipCode: body.zipCode,
+      zipCode,
       userId: user.id,
       businessName: body.businessName,
     });
