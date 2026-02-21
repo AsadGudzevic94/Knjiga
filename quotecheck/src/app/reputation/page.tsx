@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import {
@@ -107,6 +108,15 @@ function ratingLabel(rating: string): string {
 }
 
 export default function ReputationPage() {
+  return (
+    <Suspense fallback={null}>
+      <ReputationContent />
+    </Suspense>
+  );
+}
+
+function ReputationContent() {
+  const searchParams = useSearchParams();
   const [businessName, setBusinessName] = useState("");
   const [location, setLocation] = useState("");
   const [category, setCategory] = useState("other");
@@ -116,24 +126,24 @@ export default function ReputationPage() {
   const [activeTab, setActiveTab] = useState<"ai" | "community">("ai");
   const [communityData, setCommunityData] = useState<ContractorReport | null>(null);
   const [communityLoading, setCommunityLoading] = useState(false);
+  const autoSearched = useRef(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  // Core search function (reusable for form submit and auto-search)
+  async function runSearch(name: string, loc: string, cat: string) {
     setError("");
     setLoading(true);
     setResult(null);
     setCommunityData(null);
 
-    // Fetch both AI reputation and community data in parallel
     const aiPromise = fetch("/api/reputation", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ businessName, location, category }),
+      body: JSON.stringify({ businessName: name, location: loc, category: cat }),
     });
 
     const communityPromise = fetch(
-      `/api/contractor-report?name=${encodeURIComponent(businessName)}${
-        location ? `&zip=${encodeURIComponent(location)}` : ""
+      `/api/contractor-report?name=${encodeURIComponent(name)}${
+        loc ? `&zip=${encodeURIComponent(loc)}` : ""
       }`
     );
 
@@ -156,6 +166,27 @@ export default function ReputationPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  // Pre-fill from query params and auto-search (from analyze page "Look Up Reputation" link)
+  useEffect(() => {
+    if (autoSearched.current) return;
+    const name = searchParams.get("name");
+    const loc = searchParams.get("location") || "";
+    const cat = searchParams.get("category") || "other";
+    if (name) {
+      autoSearched.current = true;
+      setBusinessName(name);
+      if (loc) setLocation(loc);
+      setCategory(cat);
+      runSearch(name, loc, cat);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await runSearch(businessName, location, category);
   }
 
   async function fetchCommunityOnly() {

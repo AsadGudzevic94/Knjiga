@@ -100,6 +100,24 @@ export default function AnalyzePage() {
 
   const [userLocation, setUserLocation] = useState<string | null>(null);
 
+  // Restore previous analysis result from sessionStorage (e.g. after navigating back)
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("quotecheck_analysis");
+      const savedForm = sessionStorage.getItem("quotecheck_analysis_form");
+      if (saved) {
+        setResult(JSON.parse(saved));
+        if (savedForm) {
+          const form = JSON.parse(savedForm);
+          setQuoteText(form.quoteText || "");
+          setCategory(form.category || "auto_repair");
+          setZipCode(form.zipCode || "");
+          setBusinessName(form.businessName || "");
+        }
+      }
+    } catch {}
+  }, []);
+
   // Load quota info and user profile location when component mounts
   useEffect(() => {
     async function loadUserData() {
@@ -204,6 +222,12 @@ export default function AnalyzePage() {
 
       setResult(data);
 
+      // Save to sessionStorage so navigating back preserves results
+      try {
+        sessionStorage.setItem("quotecheck_analysis", JSON.stringify(data));
+        sessionStorage.setItem("quotecheck_analysis_form", JSON.stringify({ quoteText, category, zipCode, businessName }));
+      } catch {}
+
       // Refresh quota after successful analysis
       if (quotaInfo) {
         setQuotaInfo({
@@ -273,6 +297,10 @@ export default function AnalyzePage() {
     setZipCode("");
     setBusinessName("");
     setError("");
+    try {
+      sessionStorage.removeItem("quotecheck_analysis");
+      sessionStorage.removeItem("quotecheck_analysis_form");
+    } catch {}
   }
 
   return (
@@ -342,6 +370,9 @@ export default function AnalyzePage() {
               onSave={saveQuote}
               saving={saving}
               saved={saved}
+              businessName={businessName}
+              category={category}
+              zipCode={zipCode}
             />
           )}
         </div>
@@ -554,12 +585,18 @@ function ResultsView({
   onSave,
   saving,
   saved,
+  businessName,
+  category,
+  zipCode,
 }: {
   result: AnalysisResponse;
   onReset: () => void;
   onSave?: () => void;
   saving?: boolean;
   saved?: boolean;
+  businessName?: string;
+  category?: string;
+  zipCode?: string;
 }) {
   const [scriptCopied, setScriptCopied] = useState(false);
   const [showScript, setShowScript] = useState(false);
@@ -1124,7 +1161,9 @@ function ResultsView({
                 will search reviews, BBB complaints, and license records.
               </p>
               <a
-                href="/reputation"
+                href={`/reputation${businessName ? `?name=${encodeURIComponent(businessName)}&category=${encodeURIComponent(category || "other")}${zipCode ? `&location=${encodeURIComponent(zipCode)}` : ""}` : ""}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-500 transition"
               >
                 <Search className="w-3.5 h-3.5" />
