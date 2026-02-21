@@ -170,6 +170,10 @@ export default function DashboardPage() {
 
     if (user) {
       fetchQuotes();
+      // Google Ads conversion tracking — fire on dashboard load (signup completion)
+      if (typeof window !== "undefined" && (window as any).gtag) {
+        (window as any).gtag('event', 'ads_conversion_PURCHASE_1', {});
+      }
     }
   }, [user, authLoading, router]);
 
