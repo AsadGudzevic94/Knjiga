@@ -172,6 +172,24 @@ export default function AutomationSettingsPage() {
     }
   }
 
+  async function confirmVerification() {
+    setVerificationConfirmed(true);
+    // Clear verification data in DB so it doesn't show again
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (session.session) {
+        await fetch("/api/email/settings/clear-verification", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.session.access_token}`,
+          },
+        });
+      }
+    } catch (err) {
+      console.error("Failed to clear verification:", err);
+    }
+  }
+
   if (authLoading || !user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -410,7 +428,7 @@ export default function AutomationSettingsPage() {
                     href={settings.verificationLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() => setVerificationConfirmed(true)}
+                    onClick={() => confirmVerification()}
                     className="inline-flex items-center gap-2 bg-amber-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-amber-700 transition"
                   >
                     <Check className="w-4 h-4" />
