@@ -198,14 +198,68 @@ export const REGIONAL_MULTIPLIERS: Record<string, { label: string; factor: numbe
   "612": { label: "Minneapolis, MN", factor: 1.05 },
 };
 
+const STATE_FACTORS: Record<string, { factor: number; label: string }> = {
+  "CA": { factor: 1.20, label: "California" },
+  "NY": { factor: 1.22, label: "New York" },
+  "NJ": { factor: 1.15, label: "New Jersey" },
+  "CT": { factor: 1.18, label: "Connecticut" },
+  "MA": { factor: 1.30, label: "Massachusetts" },
+  "WA": { factor: 1.22, label: "Washington" },
+  "OR": { factor: 1.10, label: "Oregon" },
+  "CO": { factor: 1.08, label: "Colorado" },
+  "IL": { factor: 1.10, label: "Illinois" },
+  "PA": { factor: 1.12, label: "Pennsylvania" },
+  "VA": { factor: 1.08, label: "Virginia" },
+  "MD": { factor: 1.12, label: "Maryland" },
+  "DC": { factor: 1.25, label: "Washington DC" },
+  "FL": { factor: 1.05, label: "Florida" },
+  "GA": { factor: 1.02, label: "Georgia" },
+  "TX": { factor: 0.95, label: "Texas" },
+  "AZ": { factor: 0.97, label: "Arizona" },
+  "NV": { factor: 1.05, label: "Nevada" },
+  "HI": { factor: 1.35, label: "Hawaii" },
+  "AK": { factor: 1.30, label: "Alaska" },
+  "TN": { factor: 0.95, label: "Tennessee" },
+  "NC": { factor: 0.98, label: "North Carolina" },
+  "SC": { factor: 0.92, label: "South Carolina" },
+  "OH": { factor: 0.95, label: "Ohio" },
+  "MI": { factor: 0.98, label: "Michigan" },
+  "MN": { factor: 1.05, label: "Minnesota" },
+  "WI": { factor: 0.98, label: "Wisconsin" },
+  "IN": { factor: 0.92, label: "Indiana" },
+  "MO": { factor: 0.90, label: "Missouri" },
+  "AL": { factor: 0.88, label: "Alabama" },
+  "MS": { factor: 0.85, label: "Mississippi" },
+  "AR": { factor: 0.87, label: "Arkansas" },
+  "LA": { factor: 0.92, label: "Louisiana" },
+  "OK": { factor: 0.88, label: "Oklahoma" },
+  "KS": { factor: 0.90, label: "Kansas" },
+  "NE": { factor: 0.88, label: "Nebraska" },
+  "IA": { factor: 0.90, label: "Iowa" },
+  "ND": { factor: 0.88, label: "North Dakota" },
+  "SD": { factor: 0.87, label: "South Dakota" },
+  "MT": { factor: 0.92, label: "Montana" },
+  "WY": { factor: 0.93, label: "Wyoming" },
+  "ID": { factor: 0.95, label: "Idaho" },
+  "UT": { factor: 0.98, label: "Utah" },
+  "NM": { factor: 0.92, label: "New Mexico" },
+  "KY": { factor: 0.90, label: "Kentucky" },
+  "WV": { factor: 0.85, label: "West Virginia" },
+  "ME": { factor: 1.05, label: "Maine" },
+  "NH": { factor: 1.10, label: "New Hampshire" },
+  "VT": { factor: 1.08, label: "Vermont" },
+  "RI": { factor: 1.12, label: "Rhode Island" },
+  "DE": { factor: 1.05, label: "Delaware" },
+};
+
 export function getRegionalFactor(zipCode: string): { factor: number; label: string } {
-  // Try exact 3-digit prefix match
+  // Try exact 3-digit prefix match (numeric zip codes)
   const prefix3 = zipCode.slice(0, 3);
   if (REGIONAL_MULTIPLIERS[prefix3]) {
     return REGIONAL_MULTIPLIERS[prefix3];
   }
 
-  // Fall back to first digit broad region
+  // Fall back to first digit broad region (numeric zip codes)
   const firstDigit = zipCode.charAt(0);
   const broadRegions: Record<string, { factor: number; label: string }> = {
     "0": { factor: 1.18, label: "Northeast" },
@@ -220,7 +274,17 @@ export function getRegionalFactor(zipCode: string): { factor: number; label: str
     "9": { factor: 1.20, label: "West Coast" },
   };
 
-  return broadRegions[firstDigit] || { factor: 1.0, label: "National Average" };
+  if (broadRegions[firstDigit]) {
+    return broadRegions[firstDigit];
+  }
+
+  // Fall back to state abbreviation (when zip is "City, ST" or just "ST")
+  const stateMatch = zipCode.match(/\b([A-Z]{2})\b/);
+  if (stateMatch && STATE_FACTORS[stateMatch[1]]) {
+    return STATE_FACTORS[stateMatch[1]];
+  }
+
+  return { factor: 1.0, label: "National Average" };
 }
 
 export function matchService(

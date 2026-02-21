@@ -137,31 +137,33 @@ export default function SignupPage() {
 
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 block">
-              City <span className="text-muted text-xs font-normal">(optional)</span>
+              State <span className="text-red-400">*</span>
             </label>
-            <input
-              type="text"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="e.g. Austin"
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-            />
+            <select
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+              required
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
+            >
+              {US_STATES.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
+            <p className="text-xs text-muted mt-1">Used to compare quotes against local market prices</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">
-                State <span className="text-muted text-xs font-normal">(opt.)</span>
+                City <span className="text-muted text-xs font-normal">(optional)</span>
               </label>
-              <select
-                value={state}
-                onChange={(e) => setState(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
-              >
-                {US_STATES.map((s) => (
-                  <option key={s.value} value={s.value}>{s.label}</option>
-                ))}
-              </select>
+              <input
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="e.g. Austin"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              />
             </div>
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">

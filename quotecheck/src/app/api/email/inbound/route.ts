@@ -324,15 +324,22 @@ async function processInboundEmail(params: ProcessParams) {
       return;
     }
 
-    // Determine zip code
+    // Determine zip code — try email content first, then user profile
     let zipCode: string = classification.zipCode || "";
     if (!zipCode) {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("zip_code")
+        .select("zip_code, city, state")
         .eq("user_id", userId)
         .single();
-      zipCode = profile?.zip_code || "90210";
+      zipCode = profile?.zip_code || "";
+      // If no zip but has city/state, pass them so AI can use regional data
+      if (!zipCode && (profile?.city || profile?.state)) {
+        zipCode = `${profile?.city || ""}, ${profile?.state || ""}`.trim().replace(/^,\s*/, "");
+      }
+      if (!zipCode) {
+        zipCode = "90210";
+      }
     }
 
     // Apply price threshold filter
