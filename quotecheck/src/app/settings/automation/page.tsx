@@ -76,6 +76,7 @@ export default function AutomationSettingsPage() {
   const [msgType, setMsgType] = useState<"success" | "error">("success");
   const [copied, setCopied] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [verificationConfirmed, setVerificationConfirmed] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -354,7 +355,19 @@ export default function AutomationSettingsPage() {
             )}
 
             {/* Gmail verification code or link */}
-            {settings.verificationCode ? (
+            {verificationConfirmed ? (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                <div className="flex items-center gap-2">
+                  <Check className="w-5 h-5 text-green-600" />
+                  <p className="text-sm font-semibold text-green-800">
+                    Gmail Forwarding Confirmed
+                  </p>
+                </div>
+                <p className="text-xs text-green-700 mt-1">
+                  Your forwarding address is verified. Make sure &quot;Forward a copy of incoming mail&quot; is selected in Gmail settings.
+                </p>
+              </div>
+            ) : settings.verificationCode ? (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                 <p className="text-sm font-semibold text-amber-900 mb-1">
                   Gmail Verification Code
@@ -384,7 +397,7 @@ export default function AutomationSettingsPage() {
                   </p>
                 )}
               </div>
-            ) : settings.verificationLink ? (
+            ) : (settings.verificationLink || settings.verificationReceivedAt) ? (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                 <p className="text-sm font-semibold text-amber-900 mb-1">
                   Gmail Verification Required
@@ -392,31 +405,22 @@ export default function AutomationSettingsPage() {
                 <p className="text-xs text-amber-700 mb-3">
                   Gmail sent a confirmation link. Click the button below to verify your forwarding address.
                 </p>
-                <a
-                  href={settings.verificationLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-amber-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-amber-700 transition"
-                >
-                  <Check className="w-4 h-4" />
-                  Confirm Forwarding in Gmail
-                </a>
-                {settings.verificationReceivedAt && (
-                  <p className="text-xs text-amber-600 mt-2">
-                    Received {new Date(settings.verificationReceivedAt).toLocaleString()}
+                {settings.verificationLink ? (
+                  <a
+                    href={settings.verificationLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setVerificationConfirmed(true)}
+                    className="inline-flex items-center gap-2 bg-amber-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-amber-700 transition"
+                  >
+                    <Check className="w-4 h-4" />
+                    Confirm Forwarding in Gmail
+                  </a>
+                ) : (
+                  <p className="text-xs text-amber-700">
+                    Check your Gmail app or phone — you may be able to confirm the forwarding directly there.
                   </p>
                 )}
-              </div>
-            ) : settings.verificationReceivedAt ? (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                <p className="text-sm font-semibold text-amber-900 mb-1">
-                  Verification Email Received
-                </p>
-                <p className="text-xs text-amber-700">
-                  We received Gmail&apos;s verification email but couldn&apos;t extract the code automatically.
-                  Check your <a href="/dashboard?tab=emails" className="underline font-medium">Email Analyses</a> tab
-                  for the raw email content — the confirmation code should be visible there.
-                </p>
                 {settings.verificationReceivedAt && (
                   <p className="text-xs text-amber-600 mt-2">
                     Received {new Date(settings.verificationReceivedAt).toLocaleString()}
