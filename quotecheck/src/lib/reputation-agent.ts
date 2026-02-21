@@ -28,11 +28,11 @@ export interface ReviewSource {
 
 // ── Agent Tools ──────────────────────────────────────────────
 
-const REPUTATION_TOOLS: Tool[] = [
+const REPUTATION_TOOLS: Array<Tool | any> = [
   {
     name: "read_page",
     description:
-      "Read the content of a web page — useful for reading BBB profiles, Google review pages, Yelp listings, or contractor license databases when a URL is provided.",
+      "Read the content of a web page — useful for reading BBB profiles, Google review pages, Yelp listings, or contractor license databases.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -44,39 +44,51 @@ const REPUTATION_TOOLS: Tool[] = [
       required: ["url"],
     },
   },
+  {
+    type: "web_search_20250305",
+    name: "web_search",
+    max_uses: 5,
+  },
 ];
 
-const REPUTATION_SYSTEM = `You are a business reputation analyst. Your job is to provide a risk assessment of a business based on typical red flags, common industry practices, and general business evaluation criteria.
+const REPUTATION_SYSTEM = `You are a business reputation investigator. Your job is to ACTUALLY RESEARCH a specific business using web search and provide a real, evidence-based reputation report.
 
-ANALYSIS PROCESS:
-1. Consider typical reputation patterns for this type of business
-2. Identify common warning signs in the industry
-3. Provide general guidance on what to look for
-4. Recommend due diligence steps the customer should take
+YOUR PROCESS:
+1. **Search the web** for the business by name and location
+2. Look for their Google reviews, Yelp page, BBB profile, and any news/complaints
+3. Check if they have a website, how long they've been operating, licensing info
+4. Read actual review pages to get real ratings, review counts, and customer feedback
+5. Look for any complaints, lawsuits, or red flags specific to THIS business
+6. Synthesize everything into an honest, evidence-based report
 
-BE THOROUGH AND HONEST about the limitations of this analysis.
+IMPORTANT:
+- You MUST search for the actual business — do NOT give generic industry advice
+- Include real ratings, real review counts, and real URLs you find
+- If you can't find the business online, say so honestly — that itself is a red flag
+- Quote real customer reviews when possible
+- Be direct and honest — if the business looks sketchy, say so
 
-After analysis, respond with ONLY a JSON object:
+After your research, respond with ONLY a JSON object (no markdown wrapping):
 {
-  "businessName": "Verified business name",
+  "businessName": "The business name as found online",
   "overallRating": "excellent" | "good" | "mixed" | "poor" | "unknown",
   "ratingScore": 1-10,
-  "summary": "2-3 sentence general risk assessment and due diligence guidance",
+  "summary": "2-3 sentence summary based on what you ACTUALLY found online about this specific business",
   "reviewSources": [
     {
-      "platform": "Suggested platform to check (Google / Yelp / BBB / etc.)",
-      "rating": "Unknown - customer should verify",
-      "reviewCount": "Unknown - customer should check",
-      "url": "",
-      "snippet": "What to look for on this platform"
+      "platform": "Google / Yelp / BBB / etc.",
+      "rating": "4.5/5 stars (or whatever you found)",
+      "reviewCount": "123 reviews (actual number)",
+      "url": "actual URL if found",
+      "snippet": "A real review excerpt or summary of what reviewers say"
     }
   ],
-  "complaints": ["Common complaint patterns in this industry"],
-  "positives": ["What to look for as positive signs"],
-  "licenseInfo": "Recommend checking license/certification for this business type",
-  "yearsInBusiness": "Unknown - recommend asking the business",
-  "warningFlags": ["Common red flags to watch for in this industry"],
-  "recommendation": "General recommendation on due diligence steps"
+  "complaints": ["Real complaints found about THIS business, or common issues if none found"],
+  "positives": ["Real positive things found about THIS business"],
+  "licenseInfo": "What you found about their licensing/certification status",
+  "yearsInBusiness": "How long they've been operating based on what you found",
+  "warningFlags": ["Any specific red flags found for THIS business"],
+  "recommendation": "Specific recommendation based on your research findings"
 }`;
 
 // ── Reputation Lookup ────────────────────────────────────────
@@ -89,19 +101,20 @@ export async function lookupReputation(
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
-  const userPrompt = `Provide a general risk assessment and due diligence guide for this ${category.replace(/_/g, " ")} business:
+  const userPrompt = `Research the reputation of this specific business:
 
 Business Name: ${businessName}
 Location: ${location}
+Service Type: ${category.replace(/_/g, " ")}
 
-Provide guidance based on:
-1. Common red flags in the ${category.replace(/_/g, " ")} industry
-2. What platforms the customer should check for reviews (Google, Yelp, BBB, etc.)
-3. Typical complaint patterns to watch for
-4. License/certification requirements for this business type
-5. General due diligence steps the customer should take
+SEARCH STEPS:
+1. Search for "${businessName} ${location} reviews" to find their online presence
+2. Look for their Google reviews, Yelp page, and BBB profile
+3. Search for "${businessName} complaints" or "${businessName} scam" to check for issues
+4. Check if they have a website and how established they are
+5. Look for any licensing or certification information
 
-Be transparent that this is general guidance, not specific research on this business.`;
+Give me a REAL report based on what you actually find — not generic advice.`;
 
   try {
     const client = new Anthropic({ apiKey });
